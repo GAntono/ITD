@@ -1,0 +1,1 @@
+Scriptname ssmPlayer extends ReferenceAlias  
