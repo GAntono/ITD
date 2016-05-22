@@ -1,19 +1,25 @@
-Scriptname ssm extends Quest  
+Scriptname ssm extends Quest
 
-Import StorageUtil
+zbfSlaveControl Property SlaveControl Auto	; ZAZ Animation Pack zbfSlaveControl API.
 
+ReferenceAlias Property PlayerRef Auto
 ssmSlave[] Property Slots Auto
+Spell Property ssmEnslaveSpell Auto
+Int Property ssmMenuKey = 47 AutoReadOnly	; V key.
 
 ; makes sure that OnInit() will only fire once.
 Event OnInit()
-	AdjustIntValue(Self, "OnInitCounter", 1)
-	If GetIntValue(Self, "OnInitCounter") == 2
-		zbfSlaveControl SlaveControl = zbfSlaveControl.GetAPI()
+	StorageUtil.AdjustIntValue(Self, "OnInitCounter", 1)
+	If StorageUtil.GetIntValue(Self, "OnInitCounter") == 2
 		If SlaveControl	; if ZAP is installed
 			SlaveControl.RegisterForEvents()
 		Else
 			Debug.Trace("[SSM] ZAP not detected")
 		EndIf
+		PlayerRef.GetActorReference().AddSpell(ssmEnslaveSpell)
+		RegisterForKey(ssmMenuKey)
+
+		StorageUtil.UnsetIntValue(Self, "OnInitCounter")
 	EndIf
 EndEvent
 
@@ -40,3 +46,18 @@ ssmSlave Function SlotActor(Actor akActor)
 	EndWhile
 	Return returnSlot
 EndFunction
+
+Event OnKeyDown(Int Keycode)
+	If keycode == ssmMenuKey && Utility.IsInMenuMode() == False
+		ObjectReference crossHairRef = Game.GetCurrentCrosshairRef()
+		If crossHairRef != None && SlaveControl.IsSlave(crossHairRef as Actor)
+			Actor slave = crossHairRef as Actor
+			UIExtensions.InitMenu("UIWheelMenu")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Items")
+			Int ssmMenuSelection = UIExtensions.OpenMenu("UIWheelMenu")
+			If ssmMenuSelection == 0
+				slave.OpenInventory(abForceOpen = True)
+			EndIf
+		EndIf
+	EndIf
+EndEvent
