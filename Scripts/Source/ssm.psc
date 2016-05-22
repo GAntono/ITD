@@ -55,7 +55,10 @@ Event OnKeyDown(Int Keycode)
 			Actor slave = crossHairRef as Actor
 			UIExtensions.InitMenu("UIWheelMenu")
 			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Items")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Items")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionIcon", 0, "Items")
 			Int ssmMenuSelection = UIExtensions.OpenMenu("UIWheelMenu")
+			Debug.Trace("Option " + ssmMenuSelection + " selected")
 			If ssmMenuSelection == 0
 				slave.OpenInventory(abForceOpen = True)
 			EndIf
