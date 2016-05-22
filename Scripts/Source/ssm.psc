@@ -20,6 +20,7 @@ Event OnInit()
 		RegisterForKey(ssmMenuKey)
 
 		StorageUtil.UnsetIntValue(Self, "OnInitCounter")
+		Debug.Trace("[SSM] Initialized")
 	EndIf
 EndEvent
 
