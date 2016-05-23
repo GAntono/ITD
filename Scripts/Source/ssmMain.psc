@@ -1,4 +1,4 @@
-Scriptname ssm extends Quest
+Scriptname ssmMain extends Quest
 
 zbfSlaveControl Property SlaveControl Auto	; ZAZ Animation Pack zbfSlaveControl API.
 
