@@ -11,11 +11,7 @@ Int Property ssmMenuKey = 47 AutoReadOnly	; V key.
 Event OnInit()
 	StorageUtil.AdjustIntValue(Self, "OnInitCounter", 1)
 	If StorageUtil.GetIntValue(Self, "OnInitCounter") == 2
-		If SlaveControl	; if ZAP is installed
-			SlaveControl.RegisterForEvents()
-		Else
-			Debug.Trace("[SSM] ZAP not detected")
-		EndIf
+		SlaveControl.RegisterForEvents()
 		PlayerRef.GetActorReference().AddSpell(ssmEnslaveSpell)
 		RegisterForKey(ssmMenuKey)
 
@@ -25,6 +21,10 @@ Event OnInit()
 EndEvent
 
 ssmSlave Function FindSlot(Actor akActor)
+	If !akActor
+		Return None
+	EndIf
+
 	Int i
 	While i < Slots.Length
 		If Slots[i].GetReference() == akActor
@@ -36,6 +36,10 @@ ssmSlave Function FindSlot(Actor akActor)
 EndFunction
 
 ssmSlave Function SlotActor(Actor akActor)
+	If !akActor
+		Return None
+	EndIf
+
 	ssmSlave returnSlot = FindSlot(akActor)
 	Int i
 	While returnSlot == None && i < Slots.Length
