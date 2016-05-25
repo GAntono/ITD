@@ -1,11 +1,17 @@
 Scriptname ssmSlave extends zbfSlot
 
+Bool Property bForceEquip Auto
+
 Event OnItemAdded(Form akBaseItem, int aiItemCount, ObjectReference akItemReference, ObjectReference akSourceContainer)
-	SetBindingViaInv(akBaseItem)
+	If bForceEquip
+		SetBindingViaInv(akBaseItem)
+	EndIf
 EndEvent
 
 Event OnItemRemoved(Form akBaseItem, int aiItemCount, ObjectReference akItemReference, ObjectReference akSourceContainer)
-	RemoveBindingViaInv(akBaseItem)
+	If bForceEquip
+		RemoveBindingViaInv(akBaseItem)
+	EndIf
 EndEvent
 
 Function SetBindingViaInv(Form akBinding, Bool abPreventRemoval = True, Bool abUpdateSettings = True)

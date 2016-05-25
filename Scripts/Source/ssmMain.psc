@@ -1,11 +1,13 @@
 Scriptname ssmMain extends Quest
 
+; TODO: Have all properties & variables initiate via a function, to allow them to take new value after version update.
+
 zbfSlaveControl Property SlaveControl Auto	; ZAZ Animation Pack zbfSlaveControl API.
 
 ReferenceAlias Property PlayerRef Auto
 ssmSlave[] Property Slots Auto
 Spell Property ssmEnslaveSpell Auto
-Int Property ssmMenuKey = 47 AutoReadOnly	; V key.
+Int ssmMenuKey = 47	; V key.
 
 ; makes sure that OnInit() will only fire once.
 Event OnInit()
@@ -58,13 +60,19 @@ Event OnKeyDown(Int Keycode)
 		If crossHairRef != None && SlaveControl.IsSlave(crossHairRef as Actor)
 			Actor slave = crossHairRef as Actor
 			UIExtensions.InitMenu("UIWheelMenu")
-			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Inventory")
-			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Inventory")
-			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionIcon", 0, "Inventory")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Equip")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 1, "Inventory")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Equip")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 1, "Inventory")
 			UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
+			UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 1, True)
 			Int ssmMenuSelected = UIExtensions.OpenMenu("UIWheelMenu", slave)
-			Debug.Trace("Option " + ssmMenuSelected + " selected")
+			Debug.Trace("[SSM] Option " + ssmMenuSelected + " selected")
 			If ssmMenuSelected == 0
+				FindSlot(slave).bForceEquip = True	; bForceEquip is a property in the ssmSlave sub-class of Actor
+				slave.OpenInventory(abForceOpen = True)
+			ElseIf ssmMenuSelected == 1
+				FindSlot(slave).bForceEquip = False
 				slave.OpenInventory(abForceOpen = True)
 			EndIf
 		EndIf
