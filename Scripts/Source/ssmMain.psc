@@ -61,19 +61,25 @@ Event OnKeyDown(Int Keycode)
 		If crossHairRef != None && SlaveControl.IsSlave(crossHairRef as Actor)
 			Actor slave = crossHairRef as Actor
 			UIExtensions.InitMenu("UIWheelMenu")
-			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Equip")
-			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 1, "Inventory")
-			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Equip")
-			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 1, "Inventory")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "0")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 1, "1")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 2, "2")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "0")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 1, "1")
+			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 2, "2")
 			UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
 			UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 1, True)
+			UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 2, True)
 			Int ssmMenuSelected = UIExtensions.OpenMenu("UIWheelMenu", slave)
 			Debug.Trace("[SSM] Option " + ssmMenuSelected + " selected")
 			If ssmMenuSelected == 0
-				FindSlot(slave).bForceEquip = True	;bForceEquip is a property in the ssmSlave sub-class of Actor
-				slave.OpenInventory(abForceOpen = True)
+				FindSlot(slave).bChangeEquipState = True	;bChangeEquipState is a property in the ssmSlave sub-class of Actor
+				slave.ShowGiftMenu(abGivingGift = True, apFilterList = None, abUseFavorPoints = False)
 			ElseIf ssmMenuSelected == 1
-				FindSlot(slave).bForceEquip = False
+				FindSlot(slave).bChangeEquipState = True
+				slave.ShowGiftMenu(abGivingGift = False, apFilterList = None, abUseFavorPoints = False)
+			ElseIf ssmMenuSelected == 2
+				FindSlot(slave).bChangeEquipState = False
 				slave.OpenInventory(abForceOpen = True)
 			EndIf
 		EndIf
