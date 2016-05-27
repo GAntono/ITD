@@ -1,15 +1,15 @@
 Scriptname ssmMain extends Quest
 
-; TODO: Have all properties & variables initiate via a function, to allow them to take new value after version update.
+;TODO: Have all properties & variables initiate via a function, to allow them to take new value after version update.
 
-zbfSlaveControl Property SlaveControl Auto	; ZAZ Animation Pack zbfSlaveControl API.
+zbfSlaveControl Property SlaveControl Auto	;ZAZ Animation Pack zbfSlaveControl API.
 
 ReferenceAlias Property PlayerRef Auto
 ssmSlave[] Property Slots Auto
 Spell Property ssmEnslaveSpell Auto
-Int ssmMenuKey = 47	; V key.
+Int ssmMenuKey = 47	;V key.
 
-; makes sure that OnInit() will only fire once.
+;makes sure that OnInit() will only fire once.
 Event OnInit()
 	StorageUtil.AdjustIntValue(Self, "OnInitCounter", 1)
 	If StorageUtil.GetIntValue(Self, "OnInitCounter") == 2
@@ -46,7 +46,8 @@ ssmSlave Function SlotActor(Actor akActor)
 	Int i
 	While returnSlot == None && i < Slots.Length
 		If Slots[i].GetReference() == None
-			Slots[i].ForceRefTo(akActor)
+			Slots[i].ForceRefTo(akActor)	;forces ssmSlave alias to akActor
+			Slots[i].Register(akActor)		;registers akActor in the zbfSlot system
 			returnSlot = Slots[i]
 		EndIf
 		i += 1
@@ -69,7 +70,7 @@ Event OnKeyDown(Int Keycode)
 			Int ssmMenuSelected = UIExtensions.OpenMenu("UIWheelMenu", slave)
 			Debug.Trace("[SSM] Option " + ssmMenuSelected + " selected")
 			If ssmMenuSelected == 0
-				FindSlot(slave).bForceEquip = True	; bForceEquip is a property in the ssmSlave sub-class of Actor
+				FindSlot(slave).bForceEquip = True	;bForceEquip is a property in the ssmSlave sub-class of Actor
 				slave.OpenInventory(abForceOpen = True)
 			ElseIf ssmMenuSelected == 1
 				FindSlot(slave).bForceEquip = False
