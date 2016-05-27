@@ -24,6 +24,7 @@ Function SetBindingViaInv(Form akBinding, Bool abPreventRemoval = True, Bool abU
 	SetBinding(akBinding, abAdd = False, abPreventRemoval = abPreventRemoval, abUpdateSettings = abUpdateSettings) ;update settings, doesn't hurt
 	If actorRef.IsEquipped(akBinding) == False
 		actorRef.EquipItem(akBinding, abPreventRemoval = abPreventRemoval, abSilent = True)
+		actorRef.EvaluatePackage()	;activate package according to bindings
 	;/ Else
 		bChangeEquipState == False	;to remove akBinding without triggering RemoveBindingViaInv()
 		actorRef.RemoveItem(akBinding, abSilent = True, akOtherContainer = PlayerRef.GetActorReference())	;put the item back into player's inventory
@@ -48,4 +49,5 @@ Function RemoveBindingViaInv(Form akBinding, Bool abUpdateSettings = True)
 		EndIf
 		slot += 1
 	EndWhile
+	Self.GetActorReference().EvaluatePackage()	;activate package according to bindings
 EndFunction
