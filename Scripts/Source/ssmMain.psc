@@ -29,7 +29,7 @@ ssmSlave Function FindSlot(Actor akActor)
 
 	Int i
 	While i < Slots.Length
-		If Slots[i].GetReference() == akActor
+		If Slots[i].GetActorReference() == akActor
 			Return Slots[i]
 		EndIf
 		i += 1
@@ -45,9 +45,10 @@ ssmSlave Function SlotActor(Actor akActor)
 	ssmSlave returnSlot = FindSlot(akActor)
 	Int i
 	While returnSlot == None && i < Slots.Length
-		If Slots[i].GetReference() == None
-			Slots[i].ForceRefTo(akActor)	;forces ssmSlave alias to akActor
-			Slots[i].Register(akActor)		;registers akActor in the zbfSlot system
+		If Slots[i].GetActorReference() == None
+			Slots[i].SetDebugLevel(2)		;for logging purposes
+			;Slots[i].ForceRefTo(akActor)	;forces ssmSlave alias to akActor - redundant
+			Slots[i].Register(akActor)		;registers akActor in the zbfSlot (sub-class) and the ssmSlave (superclass) systems
 			returnSlot = Slots[i]
 		EndIf
 		i += 1
