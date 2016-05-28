@@ -1,13 +1,10 @@
 Scriptname ssmEnslaveEffect extends activemagiceffect
 
 ssmMain Property ssm Auto
+zbfSlaveControl Property SlaveControl Auto
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
-	zbfSlaveControl SlaveControl = zbfSlaveControl.GetAPI()
-	If SlaveControl.EnslaveActor(akTarget, "Skyrim Slave Master") ;if ZAP is installed, then enslave the target
+	If SlaveControl.EnslaveActor(akTarget, "Skyrim Slave Master") ;on a successful enslavement via zaz
 			ssm.SlotActor(akTarget)
-			Debug.Trace("[SSM] Actor enslaved")
-		Else
-			Debug.Trace("[SSM] Actor enslavement failed")
-		EndIf
+	EndIf
 EndEvent

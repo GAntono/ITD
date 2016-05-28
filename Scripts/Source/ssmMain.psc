@@ -9,6 +9,13 @@ ssmSlave[] Property Slots Auto
 Spell Property ssmEnslaveSpell Auto
 Int ssmMenuKey = 47	;V key.
 
+
+Int Property ssm_Menu_Top = 1 AutoReadOnly Hidden
+
+Int Property ssm_action_open_bondage_screen = 1 AutoReadOnly Hidden
+Int Property ssm_action_open_inventory = 2 AutoReadOnly Hidden
+
+
 ;makes sure that OnInit() will only fire once.
 Event OnInit()
 	StorageUtil.AdjustIntValue(Self, "OnInitCounter", 1)
@@ -57,26 +64,51 @@ ssmSlave Function SlotActor(Actor akActor)
 EndFunction
 
 Event OnKeyDown(Int Keycode)
-	If keycode == ssmMenuKey && Utility.IsInMenuMode() == False
-		ObjectReference crossHairRef = Game.GetCurrentCrosshairRef()
-		If crossHairRef != None && SlaveControl.IsSlave(crossHairRef as Actor)
-			Actor slave = crossHairRef as Actor
-			UIExtensions.InitMenu("UIWheelMenu")
-			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "0")
-			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 1, "1")
-			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "0")
-			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 1, "1")
-			UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
-			UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 1, True)
-			Int ssmMenuSelected = UIExtensions.OpenMenu("UIWheelMenu", slave)
-			Debug.Trace("[SSM] Option " + ssmMenuSelected + " selected")
-			If ssmMenuSelected == 0
-				FindSlot(slave).bChangeEquipState = True	;bChangeEquipState is a property in the ssmSlave sub-class of Actor
-				slave.OpenInventory(abForceOpen = True)
-			ElseIf ssmMenuSelected == 1
-				FindSlot(slave).bChangeEquipState = False
-				slave.OpenInventory(abForceOpen = True)
-			EndIf
+	If keycode == ssmMenuKey && !Utility.IsInMenuMode()
+		Actor slave = Game.GetCurrentCrosshairRef() as Actor
+		If slave && FindSlot(slave)	;if there's something under the crosshair and it's an actor slotted in ssmSlave
+			Int iOptionSelected = ShowWheelMenu(ssm_Menu_Top, slave)
+			ActOnOptionSelected(iOptionSelected, slave)
 		EndIf
 	EndIf
 EndEvent
+
+Int Function ShowWheelMenu(Int aiMenuName, Actor akActor = None)
+	If aiMenuName < ssm_Menu_Top
+		Return -1
+	EndIf
+	;cheat sheet: SetMenuPropertyIndexString(string menuName, string propertyName, int index, string value)
+	;cheat sheet: SetMenuPropertyIndexBool(string menuName, string propertyName, int index, bool value)
+	
+	Int iMenuSelected
+	UIExtensions.InitMenu("UIWheelMenu")
+	If aiMenuName == ssm_Menu_Top
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Bondage & Attire")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 1, "Inventory")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Equip & Unequip")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 1, "Give & Take")
+		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
+		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 1, True)
+		iMenuSelected == UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
+		
+		If iMenuSelected == 0
+			Return ssm_action_open_bondage_screen
+		ElseIf iMenuSelected == 1
+			Return ssm_action_open_inventory
+		EndIf
+	EndIf
+EndFunction
+
+Function ActOnOptionSelected(Int aiOptionSelected, Actor akActor = None)
+	If aiOptionSelected < ssm_action_open_bondage_screen
+		Return
+	EndIf
+	
+	If aiOptionSelected == ssm_action_open_bondage_screen
+		FindSlot(akActor).bChangeEquipState = True	;bChangeEquipState is a property in the ssmSlave sub-class of akActor
+		akActor.OpenInventory(abForceOpen = True)
+	ElseIf aiOptionSelected == ssm_action_open_inventory
+		FindSlot(akActor).bChangeEquipState = False
+		akActor.OpenInventory(abForceOpen = True)
+	EndIf
+EndFunction

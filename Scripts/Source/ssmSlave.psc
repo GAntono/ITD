@@ -22,7 +22,7 @@ Function SetBindingViaInv(Form akBinding, Bool abPreventRemoval = True, Bool abU
 	
 	Actor actorRef = Self.GetActorReference()
 	SetBinding(akBinding, abAdd = False, abPreventRemoval = abPreventRemoval, abUpdateSettings = abUpdateSettings) ;update settings, doesn't hurt
-	If actorRef.IsEquipped(akBinding) == False
+	If !actorRef.IsEquipped(akBinding)
 		actorRef.EquipItem(akBinding, abPreventRemoval = abPreventRemoval, abSilent = True)
 		actorRef.EvaluatePackage()	;activate package according to bindings
 	;/ Else
