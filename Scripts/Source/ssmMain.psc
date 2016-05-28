@@ -83,10 +83,10 @@ Int Function ShowWheelMenu(Int aiMenuName, Actor akActor = None)
 	Int iMenuSelected
 	UIExtensions.InitMenu("UIWheelMenu")
 	If aiMenuName == ssm_Menu_Top
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Bondage & Equip")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Bondage & Attire")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 1, "Inventory")
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Apply bondage or make the actor wear specific items")
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 1, "Give or take items from the actor")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Equip & Unequip")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 1, "Give & Take")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 1, True)
 		iMenuSelected == UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
