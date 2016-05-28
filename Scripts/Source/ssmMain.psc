@@ -57,10 +57,9 @@ ssmSlave Function SlotActor(Actor akActor)
 EndFunction
 
 Event OnKeyDown(Int Keycode)
-	If keycode == ssmMenuKey && Utility.IsInMenuMode() == False
-		ObjectReference crossHairRef = Game.GetCurrentCrosshairRef()
-		If crossHairRef != None && SlaveControl.IsSlave(crossHairRef as Actor)
-			Actor slave = crossHairRef as Actor
+	If keycode == ssmMenuKey && !Utility.IsInMenuMode()
+		Actor slave = Game.GetCurrentCrosshairRef() as Actor
+		If slave && FindSlot(slave)	;if there's something under the crosshair and it's an actor slotted in ssmSlave
 			UIExtensions.InitMenu("UIWheelMenu")
 			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "0")
 			UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 1, "1")
