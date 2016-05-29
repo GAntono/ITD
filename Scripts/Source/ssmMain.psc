@@ -1,6 +1,6 @@
 Scriptname ssmMain extends Quest
 
-;TODO: Have all properties & variables initiate via a function, to allow them to take new value after version update.
+;TODO: Have all properties & variables initialize via a function, to allow them to take new value after version update.
 
 zbfBondageShell Property zbf Auto			;ZAZ Animation Pack zbfBondageShell API.
 zbfSlaveControl Property SlaveControl Auto	;ZAZ Animation Pack zbfSlaveControl API.
@@ -8,24 +8,26 @@ zbfSlaveControl Property SlaveControl Auto	;ZAZ Animation Pack zbfSlaveControl A
 ReferenceAlias Property PlayerRef Auto
 ssmSlave[] Property Slots Auto
 Spell Property ssmEnslaveSpell Auto
-Int ssmMenuKey = 47	;V key.
 
 
-Int Property ssm_Menu_Top 						= 1 AutoReadOnly Hidden
-Int Property ssm_Menu_Pose 						= 2 AutoReadOnly Hidden
+Int Property ssmMenuKey  						Auto Hidden
 
-Int Property ssm_action_Open_Menu_Top		 	= 1 AutoReadOnly Hidden
-Int Property ssm_action_Open_Bondage_Screen 	= 2 AutoReadOnly Hidden
-Int Property ssm_action_Open_Inventory 			= 3 AutoReadOnly Hidden
-Int Property ssm_action_Open_Menu_Pose 			= 4 AutoReadOnly Hidden
-Int Property ssm_action_Set_Pose_Standing 		= 5 AutoReadOnly Hidden
-Int Property ssm_action_Set_Pose_Kneeling 		= 6 AutoReadOnly Hidden
-Int Property ssm_action_Set_Pose_Lying 			= 7 AutoReadOnly Hidden
+Int Property ssm_Menu_Top 						Auto Hidden
+Int Property ssm_Menu_Pose 						Auto Hidden
+
+Int Property ssm_command_Open_Menu_Top		 	Auto Hidden
+Int Property ssm_command_Open_Bondage_Screen 	Auto Hidden
+Int Property ssm_command_Open_Inventory 		Auto Hidden
+Int Property ssm_command_Open_Menu_Pose 		Auto Hidden
+Int Property ssm_command_Set_Pose_Standing 		Auto Hidden
+Int Property ssm_command_Set_Pose_Kneeling 		Auto Hidden
+Int Property ssm_command_Set_Pose_Lying 		Auto Hidden
 
 ;makes sure that OnInit() will only fire once.
 Event OnInit()
 	StorageUtil.AdjustIntValue(Self, "OnInitCounter", 1)
 	If StorageUtil.GetIntValue(Self, "OnInitCounter") == 2
+		InitValues()
 		SlaveControl.RegisterForEvents()
 		PlayerRef.GetActorReference().AddSpell(ssmEnslaveSpell)
 		RegisterForKey(ssmMenuKey)
@@ -34,6 +36,22 @@ Event OnInit()
 		Debug.Trace("[SSM] Initialized")
 	EndIf
 EndEvent
+
+;Initializing properties in a function to allow for version updates
+Function InitValues()
+	ssmMenuKey  						= 47	;V key
+
+	ssm_Menu_Top 						= 1
+	ssm_Menu_Pose 						= 2
+
+	ssm_command_Open_Menu_Top		 	= 1
+	ssm_command_Open_Bondage_Screen 	= 2
+	ssm_command_Open_Inventory 			= 3
+	ssm_command_Open_Menu_Pose 			= 4
+	ssm_command_Set_Pose_Standing 		= 5
+	ssm_command_Set_Pose_Kneeling 		= 6
+	ssm_command_Set_Pose_Lying 			= 7
+EndFunction
 
 ssmSlave Function FindSlot(Actor akActor)
 	If !akActor
@@ -73,24 +91,27 @@ Event OnKeyDown(Int Keycode)
 	If keycode == ssmMenuKey && !Utility.IsInMenuMode()
 		Actor actorRef = Game.GetCurrentCrosshairRef() as Actor
 		If actorRef && FindSlot(actorRef)	;if there's something under the crosshair and it's an actor slotted in ssmSlave
-			Int iOptionSelected = ShowWheelMenu(ssm_Menu_Top, actorRef)
-			Debug.Trace("iOptionSelected: " + iOptionSelected)
-			ActOnOptionSelected(iOptionSelected, actorRef)
+			OpenWheelMenu(ssm_Menu_Top, actorRef)
 		EndIf
 	EndIf
 EndEvent
 
-Int Function ShowWheelMenu(Int aiMenuName, Actor akActor = None)
+Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 	If aiMenuName < 1
-		Return -1
+		Return
 	EndIf
-	;cheat sheet: 
+	;cheat sheet:
 	;UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", index, "")
 	;UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "OptionText", index, "")
 	;UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", index, True)
-	
+
+	Int iMenuSelected
 	UIExtensions.InitMenu("UIWheelMenu")
 	If aiMenuName == ssm_Menu_Top
+		Bool bPoseMenuEnabled = True
+		If zbf.GetBindTypeFromWornKeywords(akActor) == zbf.iBindUnbound	;if the actor is not bound, she doesn't pose
+			bPoseMenuEnabled = False
+		EndIf
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Bondage & Attire")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Bind & Dress")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
@@ -99,19 +120,21 @@ Int Function ShowWheelMenu(Int aiMenuName, Actor akActor = None)
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 1, True)
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 2, "Poses")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 2, "Pose commands")
-		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 2, True)
-		Int iMenuSelected = UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
-		
+		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 2, bPoseMenuEnabled)
+		iMenuSelected = UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
+
 		If iMenuSelected == 0
-			Return ssm_action_Open_Bondage_Screen
+			ExecuteWheelCommand(ssm_command_Open_Bondage_Screen, akActor)
+			Return
 		ElseIf iMenuSelected == 1
-			Return ssm_action_Open_Inventory
+			ExecuteWheelCommand(ssm_command_Open_Inventory, akActor)
+			Return
 		ElseIf iMenuSelected == 2
-			Return ssm_action_Open_Menu_Pose
+			ExecuteWheelCommand(ssm_command_Open_Menu_Pose, akActor)
+			Return
 		EndIf
-		
+
 	ElseIf aiMenuName == ssm_Menu_Pose
-		Debug.Trace("Entered ssm_Menu_Pose")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Standing")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "OptionText", 0, "Stand up")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
@@ -124,43 +147,44 @@ Int Function ShowWheelMenu(Int aiMenuName, Actor akActor = None)
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 3, "Back")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "OptionText", 3, "Back to Top Menu")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 3, True)
-		Int iMenuSelected = UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
-		Debug.Trace("iMenuSelected is " + iMenuSelected)
+		iMenuSelected = UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
 
 		If iMenuSelected == 0
-			Return ssm_action_Set_Pose_Standing
+			ExecuteWheelCommand(ssm_command_Set_Pose_Standing, akActor)
+			Return
 		ElseIf iMenuSelected == 1
-			Return ssm_action_Set_Pose_Kneeling
+			ExecuteWheelCommand(ssm_command_Set_Pose_Kneeling, akActor)
+			Return
 		ElseIf iMenuSelected == 2
-			Return ssm_action_Set_Pose_Lying
+			ExecuteWheelCommand(ssm_command_Set_Pose_Lying, akActor)
+			Return
 		ElseIf iMenuSelected == 3
-			Return ssm_action_Open_Menu_Top
+			ExecuteWheelCommand(ssm_command_Open_Menu_Top, akActor)
+			Return
 		EndIf
 	EndIf
 EndFunction
 
-Function ActOnOptionSelected(Int aiOptionSelected, Actor akActor = None)
-	If aiOptionSelected < 1
+Function ExecuteWheelCommand(Int aiCommand, Actor akActor = None)
+	If aiCommand < 1
 		Return
 	EndIf
-	
-	If aiOptionSelected == ssm_action_Open_Menu_Top
-		ShowWheelMenu(ssm_Menu_Top, akActor)
-	ElseIf aiOptionSelected == ssm_action_Open_Bondage_Screen
+
+	If aiCommand == ssm_command_Open_Menu_Top
+		OpenWheelMenu(ssm_Menu_Top, akActor)
+	ElseIf aiCommand == ssm_command_Open_Bondage_Screen
 		FindSlot(akActor).bChangeEquipState = True	;bChangeEquipState is a property in the ssmSlave sub-class of akActor
 		akActor.OpenInventory(abForceOpen = True)
-	ElseIf aiOptionSelected == ssm_action_Open_Inventory
+	ElseIf aiCommand == ssm_command_Open_Inventory
 		FindSlot(akActor).bChangeEquipState = False
 		akActor.OpenInventory(abForceOpen = True)
-	ElseIf aiOptionSelected == ssm_action_Open_Menu_Pose
-		Debug.Trace("Calling Menu Pose")
-		ShowWheelMenu(ssm_Menu_Pose, akActor)
-		Debug.Trace("Menu Pose called")
-	ElseIf aiOptionSelected == ssm_action_Set_Pose_Standing
+	ElseIf aiCommand == ssm_command_Open_Menu_Pose
+		OpenWheelMenu(ssm_Menu_Pose, akActor)
+	ElseIf aiCommand == ssm_command_Set_Pose_Standing
 		FindSlot(akActor).SetPose(zbf.iPoseStanding)
-	ElseIf aiOptionSelected == ssm_action_Set_Pose_Kneeling
+	ElseIf aiCommand == ssm_command_Set_Pose_Kneeling
 		FindSlot(akActor).SetPose(zbf.iPoseKneeling)
-	ElseIf aiOptionSelected == ssm_action_Set_Pose_Lying
+	ElseIf aiCommand == ssm_command_Set_Pose_Lying
 		FindSlot(akActor).SetPose(zbf.iPoseLying)
 	EndIf
 EndFunction
