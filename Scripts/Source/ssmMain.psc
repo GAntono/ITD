@@ -236,10 +236,10 @@ Function ExecuteWheelCommand(Int aiCommand, Actor akActor = None)
 	If aiCommand == ssm_command_OpenTopMenu
 		OpenWheelMenu(ssm_menu_Top, akActor)
 	ElseIf aiCommand == ssm_command_OpenBondageScreen
-		FindSlot(akActor).bChangeEquipState = True	;bChangeEquipState is a property in the ssmSlave sub-class of akActor
+		FindSlot(akActor).bForceEquip = True	;bForceEquip is a property in the ssmSlave sub-class of akActor
 		akActor.OpenInventory(abForceOpen = True)
 	ElseIf aiCommand == ssm_command_OpenInventory
-		FindSlot(akActor).bChangeEquipState = False
+		FindSlot(akActor).bForceEquip = False
 		akActor.OpenInventory(abForceOpen = True)
 	ElseIf aiCommand == ssm_command_OpenPoseMenu
 		OpenWheelMenu(ssm_menu_Pose, akActor)
@@ -261,15 +261,18 @@ Function ExecuteWheelCommand(Int aiCommand, Actor akActor = None)
 		OpenWheelMenu(ssm_menu_Orders, akActor)
 	ElseIf aiCommand == ssm_command_ToggleIdleMarkersUse
 		If akActor.IsInFaction(ssmIdleMarkersNotAllowedFaction)
-			Debug.Trace("Previous package: " + akActor.GetCurrentPackage())
 			akActor.RemoveFromFaction(ssmIdleMarkersNotAllowedFaction)
 			akActor.EvaluatePackage()
-			Debug.Trace("New package: " + akActor.GetCurrentPackage())
 		Else
-			Debug.Trace("Previous package: " + akActor.GetCurrentPackage())
 			akActor.AddToFaction(ssmIdleMarkersNotAllowedFaction)
 			akActor.EvaluatePackage()
-			Debug.Trace("New package: " + akActor.GetCurrentPackage())
+			If akActor.GetSitState() > 2	;if the actor is sitting
+				If zbf.GetBindTypeFromWornKeywords(akActor)	!= zbf.iBindUnbound	;if the actor is bound
+					FindSlot(akActor).ApplyAnimEffects()	;make them stand by using the Zaz framework
+				Else
+					akActor.PlayIdle(zbf.zbfIdleForceDefault)		;make them stand the vanilla method
+				EndIf
+			EndIf
 		EndIf
 	ElseIf aiCommand == ssm_command_ToggleDoingFavor
 		If akActor.IsDoingFavor()
