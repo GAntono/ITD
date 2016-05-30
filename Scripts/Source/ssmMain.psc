@@ -2,8 +2,8 @@ Scriptname ssmMain extends Quest
 
 ;TODO: Have all properties & variables initialize via a function, to allow them to take new value after version update.
 
-zbfBondageShell Property zbf Auto			;ZAZ Animation Pack zbfBondageShell API.
-zbfSlaveControl Property SlaveControl Auto	;ZAZ Animation Pack zbfSlaveControl API.
+zbfBondageShell Property zbf Auto				;ZAZ Animation Pack zbfBondageShell API.
+zbfSlaveControl Property zbf_SlaveControl Auto	;ZAZ Animation Pack zbfSlaveControl API.
 
 ReferenceAlias Property PlayerRef Auto
 ssmSlave[] Property Slots Auto
@@ -27,14 +27,14 @@ Int Property ssm_command_SetPoseLying 				Auto Hidden
 Int Property ssm_command_ToggleStruggling			Auto Hidden
 Int Property ssm_command_OpenOrdersMenu				Auto Hidden
 Int Property ssm_command_ToggleIdleMarkersUse 		Auto Hidden
-Int Property ssm_command_ToggleDoingFavor			Auto Hidden
+Int Property ssm_command_SetDoingFavor				Auto Hidden
 
 ;makes sure that OnInit() will only fire once.
 Event OnInit()
 	StorageUtil.AdjustIntValue(Self, "OnInitCounter", 1)
 	If StorageUtil.GetIntValue(Self, "OnInitCounter") == 2
 		InitValues()
-		SlaveControl.RegisterForEvents()
+		zbf_SlaveControl.RegisterForEvents()
 		PlayerRef.GetActorReference().AddSpell(ssmEnslaveSpell)
 		RegisterForKey(ssmMenuKey)
 
@@ -61,7 +61,7 @@ Function InitValues()
 	ssm_command_ToggleStruggling			= 9
 	ssm_command_OpenOrdersMenu				= 10
 	ssm_command_ToggleIdleMarkersUse		= 11
-	ssm_command_ToggleDoingFavor			= 12
+	ssm_command_SetDoingFavor			= 12
 EndFunction
 
 ssmSlave Function FindSlot(Actor akActor)
@@ -91,6 +91,7 @@ ssmSlave Function SlotActor(Actor akActor)
 			Slots[i].SetDebugLevel(2)		;for logging purposes
 			;Slots[i].ForceRefTo(akActor)	;forces ssmSlave alias to akActor - redundant
 			Slots[i].Register(akActor)		;registers akActor in the zbfSlot (sub-class) and the ssmSlave (superclass) systems
+			InitializeSlave(akActor)		
 			returnSlot = Slots[i]
 		EndIf
 		i += 1
@@ -133,12 +134,6 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 		If zbf.GetBindTypeFromWornKeywords(akActor) == zbf.iBindUnbound	;if the actor is not bound, she doesn't pose
 			bPoseMenuEnabled = False
 		EndIf
-		String optionLabelText_ToggleDoingFavor = "Command"
-		String optionText_ToggleDoingFavor = "Issue a command"
-		If akActor.IsDoingFavor()
-			optionLabelText_ToggleDoingFavor = "Cancel command"
-			optionText_ToggleDoingFavor = "I changed my mind"
-		EndIf
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Bondage & Attire")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Bind & Dress")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
@@ -151,8 +146,8 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 3, "Orders")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 3, "Slave orders")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 3, True)
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 4, optionLabelText_ToggleDoingFavor)
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 4, optionText_ToggleDoingFavor)
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 4, "Command")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 4, "Issue a command")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 4, True)
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 5, "Follow/Wait")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 5, "Follow/Wait")
@@ -169,7 +164,7 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 		ElseIf iMenuSelected == 3
 			ExecuteWheelCommand(ssm_command_OpenOrdersMenu, akActor)
 		ElseIf iMenuSelected == 4
-			ExecuteWheelCommand(ssm_command_ToggleDoingFavor, akActor)
+			ExecuteWheelCommand(ssm_command_SetDoingFavor, akActor)
 		EndIf
 
 	ElseIf aiMenuName == ssm_menu_Pose
@@ -274,11 +269,8 @@ Function ExecuteWheelCommand(Int aiCommand, Actor akActor = None)
 				EndIf
 			EndIf
 		EndIf
-	ElseIf aiCommand == ssm_command_ToggleDoingFavor
-		If akActor.IsDoingFavor()
-			akActor.SetDoingFavor(abDoingFavor = False)
-		Else
+	ElseIf aiCommand == ssm_command_SetDoingFavor
 			akActor.SetDoingFavor(abDoingFavor = True)
-		EndIf
+	
 	EndIf
 EndFunction
