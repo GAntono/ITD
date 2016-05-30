@@ -1,6 +1,7 @@
 Scriptname ssmMain extends Quest
 
 ;TODO: Have all properties & variables initialize via a function, to allow them to take new value after version update.
+;TODO: Special case Hogtie: slave cannot do most actions, cannot move. Can only be placed in hogtie by binding her that way.
 
 zbfBondageShell Property zbf Auto				;ZAZ Animation Pack zbfBondageShell API.
 zbfSlaveControl Property zbf_SlaveControl Auto	;ZAZ Animation Pack zbfSlaveControl API.
@@ -205,10 +206,10 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 		EndIf
 		
 	ElseIf aiMenuName == ssm_menu_Orders
-		String optionLabelText_ToggleIdleMarkersUse = "No sitting"
-		String optionText_ToggleIdleMarkersUse = "Don't use furniture"
+		String optionLabelText_ToggleIdleMarkersUse = "Forbid sitting"
+		String optionText_ToggleIdleMarkersUse = "No sitting allowed"
 		If akActor.IsInFaction(ssmIdleMarkersNotAllowedFaction)
-			optionLabelText_ToggleIdleMarkersUse = "Sitting allowed"
+			optionLabelText_ToggleIdleMarkersUse = "Allow sitting"
 			optionText_ToggleIdleMarkersUse = "You may sit"
 		EndIf
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, optionLabelText_ToggleIdleMarkersUse)
@@ -270,7 +271,7 @@ Function ExecuteWheelCommand(Int aiCommand, Actor akActor = None)
 			EndIf
 		EndIf
 	ElseIf aiCommand == ssm_command_SetDoingFavor
-			akActor.SetDoingFavor(abDoingFavor = True)
-	
+		FindSlot(akActor).SetPose(zbf.iPoseStanding)
+		akActor.SetDoingFavor(abDoingFavor = True)
 	EndIf
 EndFunction
