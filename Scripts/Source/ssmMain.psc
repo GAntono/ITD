@@ -9,6 +9,7 @@ zbfSlaveControl Property zbf_SlaveControl Auto	;ZAZ Animation Pack zbfSlaveContr
 ReferenceAlias Property PlayerRef Auto
 ssmSlave[] Property Slots Auto
 Spell Property ssmEnslaveSpell Auto
+Spell Property ssmFreeSlaveSpell Auto
 Faction Property ssmIdleMarkersNotAllowedFaction Auto
 Faction Property ssmStrugglingFaction Auto
 
@@ -29,6 +30,7 @@ Int Property ssm_command_ToggleStruggling			Auto Hidden
 Int Property ssm_command_OpenOrdersMenu				Auto Hidden
 Int Property ssm_command_ToggleIdleMarkersUse 		Auto Hidden
 Int Property ssm_command_SetDoingFavor				Auto Hidden
+Int Property ssm_command_SetStillAnim				Auto Hidden
 
 ;makes sure that OnInit() will only fire once.
 Event OnInit()
@@ -37,6 +39,7 @@ Event OnInit()
 		InitValues()
 		zbf_SlaveControl.RegisterForEvents()
 		PlayerRef.GetActorReference().AddSpell(ssmEnslaveSpell)
+		PlayerRef.GetActorReference().AddSpell(ssmFreeSlaveSpell)
 		RegisterForKey(ssmMenuKey)
 
 		StorageUtil.UnsetIntValue(Self, "OnInitCounter")
@@ -62,7 +65,8 @@ Function InitValues()
 	ssm_command_ToggleStruggling			= 9
 	ssm_command_OpenOrdersMenu				= 10
 	ssm_command_ToggleIdleMarkersUse		= 11
-	ssm_command_SetDoingFavor			= 12
+	ssm_command_SetDoingFavor				= 12
+	ssm_command_SetStillAnim				= 13
 EndFunction
 
 ssmSlave Function FindSlot(Actor akActor)
@@ -92,7 +96,7 @@ ssmSlave Function SlotActor(Actor akActor)
 			Slots[i].SetDebugLevel(2)		;for logging purposes
 			;Slots[i].ForceRefTo(akActor)	;forces ssmSlave alias to akActor - redundant
 			Slots[i].Register(akActor)		;registers akActor in the zbfSlot (sub-class) and the ssmSlave (superclass) systems
-			InitializeSlave(akActor)		
+			InitializeActor(akActor)		
 			returnSlot = Slots[i]
 		EndIf
 		i += 1
@@ -100,8 +104,13 @@ ssmSlave Function SlotActor(Actor akActor)
 	Return returnSlot
 EndFunction
 
+Function UnslotActor(Actor akActor)
+	InitializeActor(akActor)
+	FindSlot(akActor).Clear()
+EndFunction
+
 ;initialize factions that may exist on the slave
-Function InitializeSlave(Actor akActor)
+Function InitializeActor(Actor akActor)
 	If !akActor
 		Return
 	EndIf
@@ -184,12 +193,15 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 2, "Lying")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 2, "Lie down")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 2, True)
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 4, "Back")
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 4, "Back to Top Menu")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 3, "Back")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 3, "Back to Top Menu")
+		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 3, True)
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 4, optionLabelText_ToggleStruggling)
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 4, optionLabelText_ToggleStruggling)
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 4, True)
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 7, optionLabelText_ToggleStruggling)
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 7, optionLabelText_ToggleStruggling)
-		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 7, True)
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 5, "SetStillAnim()")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 5, "SetStillAnim()")
+		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 5, True)
 		
 		iMenuSelected = UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
 
@@ -199,10 +211,12 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 			ExecuteWheelCommand(ssm_command_SetPoseKneeling, akActor)
 		ElseIf iMenuSelected == 2
 			ExecuteWheelCommand(ssm_command_SetPoseLying, akActor)
-		ElseIf iMenuSelected == 4
+		ElseIf iMenuSelected == 3
 			ExecuteWheelCommand(ssm_command_OpenTopMenu, akActor)
-		ElseIf iMenuSelected == 7
+		ElseIf iMenuSelected == 4
 			ExecuteWheelCommand(ssm_command_ToggleStruggling, akActor)
+		ElseIf iMenuSelected == 5
+			ExecuteWheelCommand(ssm_command_SetStillAnim, akActor)
 		EndIf
 		
 	ElseIf aiMenuName == ssm_menu_Orders
@@ -215,11 +229,16 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, optionLabelText_ToggleIdleMarkersUse)
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, optionText_ToggleIdleMarkersUse)
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 3, "Back")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 3, "Back to Top Menu")
+		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 3, True)
 		
 		iMenuSelected = UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
 		
 		If iMenuSelected == 0
 			ExecuteWheelCommand(ssm_command_ToggleIdleMarkersUse, akActor)
+		ElseIf iMenuSelected == 3
+			ExecuteWheelCommand(ssm_command_OpenTopMenu, akActor)
 		EndIf
 	EndIf
 EndFunction
@@ -227,30 +246,35 @@ EndFunction
 Function ExecuteWheelCommand(Int aiCommand, Actor akActor = None)
 	If aiCommand < 1
 		Return
+	ElseIf !akActor
+		Debug.Trace("[SSM] ERROR: ExecuteWheelCommand() has been passed a non-object for argument akActor")
+		Return
 	EndIf
+	
+	ssmSlave slave = FindSlot(akActor)
 
 	If aiCommand == ssm_command_OpenTopMenu
 		OpenWheelMenu(ssm_menu_Top, akActor)
 	ElseIf aiCommand == ssm_command_OpenBondageScreen
-		FindSlot(akActor).bForceEquip = True	;bForceEquip is a property in the ssmSlave sub-class of akActor
+		slave.bForceEquip = True	;bForceEquip is a property in the ssmSlave sub-class of akActor
 		akActor.OpenInventory(abForceOpen = True)
 	ElseIf aiCommand == ssm_command_OpenInventory
-		FindSlot(akActor).bForceEquip = False
+		slave.bForceEquip = False
 		akActor.OpenInventory(abForceOpen = True)
 	ElseIf aiCommand == ssm_command_OpenPoseMenu
 		OpenWheelMenu(ssm_menu_Pose, akActor)
 	ElseIf aiCommand == ssm_command_SetPoseStanding
-		FindSlot(akActor).SetPose(zbf.iPoseStanding)
+		slave.SetPose(zbf.iPoseStanding)
 	ElseIf aiCommand == ssm_command_SetPoseKneeling
-		FindSlot(akActor).SetPose(zbf.iPoseKneeling)
+		slave.SetPose(zbf.iPoseKneeling)
 	ElseIf aiCommand == ssm_command_SetPoseLying
-		FindSlot(akActor).SetPose(zbf.iPoseLying)
+		slave.SetPose(zbf.iPoseLying)
 	ElseIf aiCommand == ssm_command_ToggleStruggling
 		If akActor.IsInFaction(ssmStrugglingFaction)
-			FindSlot(akActor).SetStruggle(abStruggle = False)
+			slave.SetStruggle(abStruggle = False)
 			akActor.RemoveFromFaction(ssmStrugglingFaction)
 		Else
-			FindSlot(akActor).SetStruggle(abStruggle = True)
+			slave.SetStruggle(abStruggle = True)
 			akActor.AddToFaction(ssmStrugglingFaction)
 		EndIf
 	ElseIf aiCommand == ssm_command_OpenOrdersMenu
@@ -264,14 +288,18 @@ Function ExecuteWheelCommand(Int aiCommand, Actor akActor = None)
 			akActor.EvaluatePackage()
 			If akActor.GetSitState() > 2	;if the actor is sitting
 				If zbf.GetBindTypeFromWornKeywords(akActor)	!= zbf.iBindUnbound	;if the actor is bound
-					FindSlot(akActor).ApplyAnimEffects()	;make them stand by using the Zaz framework
+					slave.ApplyAnimEffects()	;make them stand by using the Zaz framework
 				Else
 					akActor.PlayIdle(zbf.zbfIdleForceDefault)		;make them stand the vanilla method
 				EndIf
 			EndIf
 		EndIf
 	ElseIf aiCommand == ssm_command_SetDoingFavor
-		FindSlot(akActor).SetPose(zbf.iPoseStanding)
+		slave.SetStillAnim("")		;clear the still animation before the slave starts moving
+		slave.SetPose(zbf.iPoseStanding)	;make her stand before she starts moving
 		akActor.SetDoingFavor(abDoingFavor = True)
+	ElseIf aiCommand == ssm_command_SetStillAnim
+		slave.SetStillAnim("ZapWriPose06")
+		slave.ApplyAnimEffects()
 	EndIf
 EndFunction

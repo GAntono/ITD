@@ -4,7 +4,7 @@ ssmMain Property ssm Auto
 zbfSlaveControl Property zbf_SlaveControl Auto
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
-	If zbf_SlaveControl.EnslaveActor(akTarget, "SSM") ;on a successful enslavement via zaz
-		ssm.SlotActor(akTarget)
+	If ssm.SlotActor(akTarget)
+		zbf_SlaveControl.EnslaveActor(akTarget, "SSM")
 	EndIf
 EndEvent
