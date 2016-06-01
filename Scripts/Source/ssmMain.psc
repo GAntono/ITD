@@ -2,6 +2,7 @@ Scriptname ssmMain extends Quest
 
 ;TODO: Have all properties & variables initialize via a function, to allow them to take new value after version update.
 ;TODO: Special case Hogtie: slave cannot do most actions, cannot move. Can only be placed in hogtie by binding her that way.
+;TODO: Add zbfSlot.SheatheWeapon() before forcing any animations.
 
 zbfBondageShell Property zbf Auto				;ZAZ Animation Pack zbfBondageShell API.
 zbfSlaveControl Property zbf_SlaveControl Auto	;ZAZ Animation Pack zbfSlaveControl API.
@@ -18,7 +19,7 @@ Int Property ssmMenuKey  							Auto Hidden
 Int Property ssm_menu_Top 							Auto Hidden
 Int Property ssm_menu_Pose 							Auto Hidden
 Int Property ssm_menu_Orders						Auto Hidden
-Int Property ssm_menu_StillAnims					Auto Hidden
+Int Property ssm_menu_SetAnim					Auto Hidden
 
 Int Property ssm_command_OpenTopMenu		 		Auto Hidden
 Int Property ssm_command_OpenBondageScreen 			Auto Hidden
@@ -31,7 +32,7 @@ Int Property ssm_command_ToggleStruggling			Auto Hidden
 Int Property ssm_command_OpenOrdersMenu				Auto Hidden
 Int Property ssm_command_ToggleIdleMarkersUse 		Auto Hidden
 Int Property ssm_command_SetDoingFavor				Auto Hidden
-Int Property ssm_command_SetStillAnim				Auto Hidden
+Int Property ssm_command_SetAnim				Auto Hidden
 
 ;makes sure that OnInit() will only fire once.
 Event OnInit()
@@ -55,7 +56,7 @@ Function InitValues()
 	ssm_menu_Top 							= 1
 	ssm_menu_Pose 							= 2
 	ssm_menu_Orders							= 3
-	ssm_menu_StillAnims						= 4
+	ssm_menu_SetAnim						= 4
 
 	ssm_command_OpenTopMenu		 			= 1
 	ssm_command_OpenBondageScreen 			= 2
@@ -68,7 +69,7 @@ Function InitValues()
 	ssm_command_OpenOrdersMenu				= 10
 	ssm_command_ToggleIdleMarkersUse		= 11
 	ssm_command_SetDoingFavor				= 12
-	ssm_command_SetStillAnim				= 13
+	ssm_command_SetAnim				= 13
 EndFunction
 
 ssmSlave Function FindSlot(Actor akActor)
@@ -107,7 +108,9 @@ ssmSlave Function SlotActor(Actor akActor)
 EndFunction
 
 Function UnslotActor(Actor akActor)
-	InitializeActor(akActor)
+	akActor.RemoveFromFaction(ssmIdleMarkersNotAllowedFaction)
+	akActor.RemoveFromFaction(ssmStrugglingFaction)
+	
 	FindSlot(akActor).Clear()
 EndFunction
 
@@ -219,7 +222,7 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 		ElseIf iMenuSelected == 4
 			ExecuteSSMCommand(ssm_command_ToggleStruggling, akActor)
 		ElseIf iMenuSelected == 5
-			ExecuteSSMCommand(ssm_command_SetStillAnim, akActor)
+			ExecuteSSMCommand(ssm_command_SetAnim, akActor)
 		EndIf
 		
 	ElseIf aiMenuName == ssm_menu_Orders
@@ -243,7 +246,8 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 		ElseIf iMenuSelected == 3
 			ExecuteSSMCommand(ssm_command_OpenTopMenu, akActor)
 		EndIf
-	ElseIf aiMenuName == ssm_menu_StillAnims
+	ElseIf aiMenuName == ssm_menu_SetAnim	;TODO: this menu will show only available animations for akActor
+		String[] validAnimations = zbf.GetPoseAnimList(aiPoseIndex = FindSlot(akActor).iPose, aiBindType = zbf.GetBindTypeFromWornKeywords(akActor))
 		UIExtensions.SetMenuPropertyInt("UIListMenu", "totalEntries", 2)
 		UIExtensions.SetMenuPropertyIndexString("UIListMenu", "entryName", 0, "Test 0")
 		UIExtensions.SetMenuPropertyIndexInt("UIListMenu", "entryId", 0, 0)
@@ -275,10 +279,13 @@ Function ExecuteSSMCommand(Int aiCommand, Actor akActor = None)
 	ElseIf aiCommand == ssm_command_OpenPoseMenu
 		OpenSSMMenu(ssm_menu_Pose, akActor)
 	ElseIf aiCommand == ssm_command_SetPoseStanding
+		slave.PinActor()
 		slave.SetPose(zbf.iPoseStanding)
 	ElseIf aiCommand == ssm_command_SetPoseKneeling
+		slave.PinActor()
 		slave.SetPose(zbf.iPoseKneeling)
 	ElseIf aiCommand == ssm_command_SetPoseLying
+		slave.PinActor()
 		slave.SetPose(zbf.iPoseLying)
 	ElseIf aiCommand == ssm_command_ToggleStruggling
 		If akActor.IsInFaction(ssmStrugglingFaction)
@@ -306,12 +313,15 @@ Function ExecuteSSMCommand(Int aiCommand, Actor akActor = None)
 			EndIf
 		EndIf
 	ElseIf aiCommand == ssm_command_SetDoingFavor
-		slave.SetStillAnim("")		;clear the still animation before the slave starts moving
-		slave.SetPose(zbf.iPoseStanding)	;make her stand before she starts moving
+		If slave.bIsAnimating
+			slave.SetAnim("")		;clear the still animation before the slave starts moving
+		EndIf
+		;slave.SetPose(zbf.iPoseStanding)	;make her stand before she starts moving - TODO: check if redundant
+		slave.UnpinActor()
 		akActor.SetDoingFavor(abDoingFavor = True)
-	ElseIf aiCommand == ssm_command_SetStillAnim
-		OpenSSMMenu(ssm_menu_StillAnims, akActor)
-		;/ slave.SetStillAnim("ZapWriPose06")
+	ElseIf aiCommand == ssm_command_SetAnim
+		OpenSSMMenu(ssm_menu_SetAnim, akActor)
+		;/ slave.SetAnim("ZapWriPose06")
 		slave.ApplyAnimEffects() /;
 	EndIf
 EndFunction
