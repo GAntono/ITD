@@ -279,13 +279,16 @@ Function ExecuteSSMCommand(Int aiCommand, Actor akActor = None)
 	ElseIf aiCommand == ssm_command_OpenPoseMenu
 		OpenSSMMenu(ssm_menu_Pose, akActor)
 	ElseIf aiCommand == ssm_command_SetPoseStanding
-		slave.PinActor()
+		slave.UnpinActor()
+		slave.SheatheWeapon()
 		slave.SetPose(zbf.iPoseStanding)
 	ElseIf aiCommand == ssm_command_SetPoseKneeling
 		slave.PinActor()
+		slave.SheatheWeapon()
 		slave.SetPose(zbf.iPoseKneeling)
 	ElseIf aiCommand == ssm_command_SetPoseLying
 		slave.PinActor()
+		slave.SheatheWeapon()
 		slave.SetPose(zbf.iPoseLying)
 	ElseIf aiCommand == ssm_command_ToggleStruggling
 		If akActor.IsInFaction(ssmStrugglingFaction)
