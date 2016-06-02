@@ -3,6 +3,7 @@ Scriptname ssmMain extends Quest
 ;TODO: Have all properties & variables initialize via a function, to allow them to take new value after version update.
 ;TODO: Special case Hogtie: slave cannot do most actions, cannot move. Can only be placed in hogtie by binding her that way.
 ;TODO: Add zbfSlot.SheatheWeapon() before forcing any animations.
+;TODO: Ask for iBindType to be turned into a property or returned by a function.
 
 zbfBondageShell Property zbf Auto				;ZAZ Animation Pack zbfBondageShell API.
 zbfSlaveControl Property zbf_SlaveControl Auto	;ZAZ Animation Pack zbfSlaveControl API.
@@ -247,16 +248,25 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 			ExecuteSSMCommand(ssm_command_OpenTopMenu, akActor)
 		EndIf
 	ElseIf aiMenuName == ssm_menu_SetAnim	;TODO: this menu will show only available animations for akActor
-		String[] validAnimations = zbf.GetPoseAnimList(aiPoseIndex = FindSlot(akActor).iPose, aiBindType = zbf.GetBindTypeFromWornKeywords(akActor))
-		UIExtensions.SetMenuPropertyInt("UIListMenu", "totalEntries", 2)
-		UIExtensions.SetMenuPropertyIndexString("UIListMenu", "entryName", 0, "Test 0")
-		UIExtensions.SetMenuPropertyIndexInt("UIListMenu", "entryId", 0, 0)
-		UIExtensions.SetMenuPropertyIndexString("UIListMenu", "entryName", 1, "Test 1")
-		UIExtensions.SetMenuPropertyIndexInt("UIListMenu", "entryId", 1, 1)
-		
+		String[] validAnimationsComaSeparated = zbf.GetPoseAnimList(aiPoseIndex = FindSlot(akActor).iPose, aiBindType = zbf.GetBindTypeFromWornKeywords(akActor))
+		String[] validAnimations = zbfUtil.ArgString(validAnimationsComaSeparated[0], asDelimiter = ",", bAllowEmpty = False) ;[0] means "non-struggling"
+		Int totalEntries = validAnimations.Length
+		UIExtensions.SetMenuPropertyInt("UIListMenu", "totalEntries", totalEntries)
+		Int i
+		While i < totalEntries
+			UIExtensions.SetMenuPropertyIndexString("UIListMenu", "entryName", i, validAnimations[i])
+			UIExtensions.SetMenuPropertyIndexInt("UIListMenu", "entryId", i, i)
+			i += 1
+		EndWhile
 		iMenuSelected = UIExtensions.OpenMenu(menuName = "UIListMenu")
+		
+		ssmSlave slave = FindSlot(akActor)
+		slave.PinActor()
+		slave.SheatheWeapon()
+		slave.SetAnim(validAnimations[i])
 	EndIf
 EndFunction
+
 
 Function ExecuteSSMCommand(Int aiCommand, Actor akActor = None)
 	If aiCommand < 1
