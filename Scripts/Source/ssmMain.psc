@@ -4,6 +4,8 @@ Scriptname ssmMain extends Quest
 ;TODO: Special case Hogtie: slave cannot do most actions, cannot move. Can only be placed in hogtie by binding her that way.
 ;TODO: Add zbfSlot.SheatheWeapon() before forcing any animations.
 ;TODO: Ask for iBindType to be turned into a property or returned by a function.
+;TODO: Ask for a version of SetBinding() that equips but doesn't add.
+;TODO: In fact, ask for all zbfSlot variables to be converted into properties.
 
 zbfBondageShell Property zbf Auto				;ZAZ Animation Pack zbfBondageShell API.
 zbfSlaveControl Property zbf_SlaveControl Auto	;ZAZ Animation Pack zbfSlaveControl API.
@@ -20,7 +22,7 @@ Int Property ssmMenuKey  							Auto Hidden
 Int Property ssm_menu_Top 							Auto Hidden
 Int Property ssm_menu_Pose 							Auto Hidden
 Int Property ssm_menu_Orders						Auto Hidden
-Int Property ssm_menu_SetAnim					Auto Hidden
+Int Property ssm_menu_SetAnim						Auto Hidden
 
 Int Property ssm_command_OpenTopMenu		 		Auto Hidden
 Int Property ssm_command_OpenBondageScreen 			Auto Hidden
@@ -249,8 +251,10 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 		EndIf
 	ElseIf aiMenuName == ssm_menu_SetAnim	;TODO: this menu will show only available animations for akActor
 		String[] validAnimationsComaSeparated = zbf.GetPoseAnimList(aiPoseIndex = FindSlot(akActor).iPose, aiBindType = zbf.GetBindTypeFromWornKeywords(akActor))
+		Debug.Trace("validAnimationsComaSeparated length is: " + validAnimationsComaSeparated.Length)
 		String[] validAnimations = zbfUtil.ArgString(validAnimationsComaSeparated[0], asDelimiter = ",", bAllowEmpty = False) ;[0] means "non-struggling"
 		Int totalEntries = validAnimations.Length
+		Debug.Trace("validAnimations length is: " + validAnimations.Length)
 		UIExtensions.SetMenuPropertyInt("UIListMenu", "totalEntries", totalEntries)
 		Int i
 		While i < totalEntries
@@ -263,7 +267,7 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 		ssmSlave slave = FindSlot(akActor)
 		slave.PinActor()
 		slave.SheatheWeapon()
-		slave.SetAnim(validAnimations[i])
+		slave.SetAnim(validAnimations[iMenuSelected])
 	EndIf
 EndFunction
 

@@ -4,21 +4,33 @@ ReferenceAlias Property PlayerRef Auto
 Bool Property bForceEquip Auto Hidden
 
 Event OnItemAdded(Form akBaseItem, Int aiItemCount, ObjectReference akItemReference, ObjectReference akSourceContainer)
-	If bForceEquip
-		Actor actorRef = Self.GetActorReference()
-		SetBinding(akBinding = akBaseItem, abAdd = False, abPreventRemoval = True, abUpdateSettings = True) ;update settings, doesn't hurt
-		If !actorRef.IsEquipped(akBaseItem)
-			actorRef.EquipItem(akBaseItem, abPreventRemoval = True, abSilent = True)
-			actorRef.EvaluatePackage()	;activate package according to bindings
-		EndIf
+	If !bForceEquip
+		Return
 	EndIf
+	Actor actorRef = Self.GetActorReference()
+	If actorRef.IsEquipped(akBaseItem)
+		Return
+	EndIf
+	
+	If akBaseItem.GetType() == 26	;type: armor
+		Form previousItem = actorRef.GetWornForm((akBaseItem as Armor).GetSlotMask())
+			If previousItem
+				RemoveBinding(akBinding = previousItem, abRemove = False, abUpdateSettings = True)
+				actorRef.UnequipItem(akItem = previousItem, abPreventEquip = False, abSilent = True)
+			EndIf
+		actorRef.EquipItem(akItem = akBaseItem, abPreventRemoval = True, abSilent = True)
+		SetBinding(akBinding = akBaseItem, abAdd = False, abPreventRemoval = True, abUpdateSettings = True)
+	Else	;type: weapon, shield etc
+		actorRef.EquipItem(akItem = akBaseItem, abPreventRemoval = False, abSilent = True)
+	EndIf
+	actorRef.EvaluatePackage()	;activate package according to bindings
 EndEvent
 
 Event OnItemRemoved(Form akBaseItem, int aiItemCount, ObjectReference akItemReference, ObjectReference akDestContainer)
 	;OnObjectUnequipped doesn't work as intended
-	If !akBaseItem
-		Return
-	ElseIf Self.GetActorReference().IsEquipped(akBaseItem)	;if the actor is still wearing such an item, then we only removed it from her inventory
+	;TODO: check if keys are available
+	Actor actorRef = Self.GetActorReference()
+	If actorRef.IsEquipped(akBaseItem)	;if the actor is still wearing such an item, then we only removed it from her inventory
 		Return
 	EndIf
 	
@@ -32,5 +44,5 @@ Event OnItemRemoved(Form akBaseItem, int aiItemCount, ObjectReference akItemRefe
 		EndIf
 		slot += 1
 	EndWhile
-	Self.GetActorReference().EvaluatePackage()	;activate package according to bindings
+	actorRef.EvaluatePackage()	;activate package according to bindings
 EndEvent
