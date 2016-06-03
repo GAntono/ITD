@@ -2,9 +2,14 @@ Scriptname ssmMain extends Quest
 
 ;TODO: Have all properties & variables initialize via a function, to allow them to take new value after version update.
 ;TODO: Special case Hogtie: slave cannot do most actions, cannot move. Can only be placed in hogtie by binding her that way.
+;TODO: Ask for iBindType to be turned into a property or returned by a function.
+;TODO: Ask for a version of SetBinding() that equips but doesn't add.
+;TODO: In fact, ask for all zbfSlot variables to be converted into properties.
 
 zbfBondageShell Property zbf Auto				;ZAZ Animation Pack zbfBondageShell API.
 zbfSlaveControl Property zbf_SlaveControl Auto	;ZAZ Animation Pack zbfSlaveControl API.
+
+Import StorageUtil
 
 ReferenceAlias Property PlayerRef Auto
 ssmSlave[] Property Slots Auto
@@ -18,6 +23,7 @@ Int Property ssmMenuKey  							Auto Hidden
 Int Property ssm_menu_Top 							Auto Hidden
 Int Property ssm_menu_Pose 							Auto Hidden
 Int Property ssm_menu_Orders						Auto Hidden
+Int Property ssm_menu_SetAnim						Auto Hidden
 
 Int Property ssm_command_OpenTopMenu		 		Auto Hidden
 Int Property ssm_command_OpenBondageScreen 			Auto Hidden
@@ -30,7 +36,7 @@ Int Property ssm_command_ToggleStruggling			Auto Hidden
 Int Property ssm_command_OpenOrdersMenu				Auto Hidden
 Int Property ssm_command_ToggleIdleMarkersUse 		Auto Hidden
 Int Property ssm_command_SetDoingFavor				Auto Hidden
-Int Property ssm_command_SetStillAnim				Auto Hidden
+Int Property ssm_command_SetAnim				Auto Hidden
 
 ;makes sure that OnInit() will only fire once.
 Event OnInit()
@@ -54,6 +60,7 @@ Function InitValues()
 	ssm_menu_Top 							= 1
 	ssm_menu_Pose 							= 2
 	ssm_menu_Orders							= 3
+	ssm_menu_SetAnim						= 4
 
 	ssm_command_OpenTopMenu		 			= 1
 	ssm_command_OpenBondageScreen 			= 2
@@ -66,7 +73,7 @@ Function InitValues()
 	ssm_command_OpenOrdersMenu				= 10
 	ssm_command_ToggleIdleMarkersUse		= 11
 	ssm_command_SetDoingFavor				= 12
-	ssm_command_SetStillAnim				= 13
+	ssm_command_SetAnim				= 13
 EndFunction
 
 ssmSlave Function FindSlot(Actor akActor)
@@ -105,7 +112,9 @@ ssmSlave Function SlotActor(Actor akActor)
 EndFunction
 
 Function UnslotActor(Actor akActor)
-	InitializeActor(akActor)
+	akActor.RemoveFromFaction(ssmIdleMarkersNotAllowedFaction)
+	akActor.RemoveFromFaction(ssmStrugglingFaction)
+	
 	FindSlot(akActor).Clear()
 EndFunction
 
@@ -123,12 +132,12 @@ Event OnKeyDown(Int Keycode)
 	If keycode == ssmMenuKey && !Utility.IsInMenuMode()
 		Actor actorRef = Game.GetCurrentCrosshairRef() as Actor
 		If actorRef && FindSlot(actorRef)	;if there's something under the crosshair and it's an actor slotted in ssmSlave
-			OpenWheelMenu(ssm_menu_Top, actorRef)
+			OpenSSMMenu(ssm_menu_Top, actorRef)
 		EndIf
 	EndIf
 EndEvent
 
-Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
+Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 	If aiMenuName < 1
 		Return
 	EndIf
@@ -139,6 +148,7 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 
 	Int iMenuSelected
 	UIExtensions.InitMenu("UIWheelMenu")
+	UIExtensions.InitMenu("UIListMenu")
 	If aiMenuName == ssm_menu_Top
 		Bool bPoseMenuEnabled = True
 		If zbf.GetBindTypeFromWornKeywords(akActor) == zbf.iBindUnbound	;if the actor is not bound, she doesn't pose
@@ -166,15 +176,15 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 		iMenuSelected = UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
 
 		If iMenuSelected == 0
-			ExecuteWheelCommand(ssm_command_OpenBondageScreen, akActor)
+			ExecuteSSMCommand(ssm_command_OpenBondageScreen, akActor)
 		ElseIf iMenuSelected == 1
-			ExecuteWheelCommand(ssm_command_OpenInventory, akActor)
+			ExecuteSSMCommand(ssm_command_OpenInventory, akActor)
 		ElseIf iMenuSelected == 2
-			ExecuteWheelCommand(ssm_command_OpenPoseMenu, akActor)
+			ExecuteSSMCommand(ssm_command_OpenPoseMenu, akActor)
 		ElseIf iMenuSelected == 3
-			ExecuteWheelCommand(ssm_command_OpenOrdersMenu, akActor)
+			ExecuteSSMCommand(ssm_command_OpenOrdersMenu, akActor)
 		ElseIf iMenuSelected == 4
-			ExecuteWheelCommand(ssm_command_SetDoingFavor, akActor)
+			ExecuteSSMCommand(ssm_command_SetDoingFavor, akActor)
 		EndIf
 
 	ElseIf aiMenuName == ssm_menu_Pose
@@ -184,6 +194,7 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 			optionLabelText_ToggleStruggling = "Stop struggling"
 			optionText_ToggleStruggling = "Stop struggling"
 		EndIf
+		;TODO: if no poses available for iPose = iPoseStanding with any combination of aiBindType, then disable that option when standing
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Standing")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Stand up")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
@@ -199,24 +210,24 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 4, optionLabelText_ToggleStruggling)
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 4, optionLabelText_ToggleStruggling)
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 4, True)
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 5, "SetStillAnim()")
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 5, "SetStillAnim()")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 5, "Specific Pose")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 5, "Set specific pose")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 5, True)
 		
 		iMenuSelected = UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
 
 		If iMenuSelected == 0
-			ExecuteWheelCommand(ssm_command_SetPoseStanding, akActor)
+			ExecuteSSMCommand(ssm_command_SetPoseStanding, akActor)
 		ElseIf iMenuSelected == 1
-			ExecuteWheelCommand(ssm_command_SetPoseKneeling, akActor)
+			ExecuteSSMCommand(ssm_command_SetPoseKneeling, akActor)
 		ElseIf iMenuSelected == 2
-			ExecuteWheelCommand(ssm_command_SetPoseLying, akActor)
+			ExecuteSSMCommand(ssm_command_SetPoseLying, akActor)
 		ElseIf iMenuSelected == 3
-			ExecuteWheelCommand(ssm_command_OpenTopMenu, akActor)
+			ExecuteSSMCommand(ssm_command_OpenTopMenu, akActor)
 		ElseIf iMenuSelected == 4
-			ExecuteWheelCommand(ssm_command_ToggleStruggling, akActor)
+			ExecuteSSMCommand(ssm_command_ToggleStruggling, akActor)
 		ElseIf iMenuSelected == 5
-			ExecuteWheelCommand(ssm_command_SetStillAnim, akActor)
+			ExecuteSSMCommand(ssm_command_SetAnim, akActor)
 		EndIf
 		
 	ElseIf aiMenuName == ssm_menu_Orders
@@ -236,25 +247,58 @@ Function OpenWheelMenu(Int aiMenuName, Actor akActor = None)
 		iMenuSelected = UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
 		
 		If iMenuSelected == 0
-			ExecuteWheelCommand(ssm_command_ToggleIdleMarkersUse, akActor)
+			ExecuteSSMCommand(ssm_command_ToggleIdleMarkersUse, akActor)
 		ElseIf iMenuSelected == 3
-			ExecuteWheelCommand(ssm_command_OpenTopMenu, akActor)
+			ExecuteSSMCommand(ssm_command_OpenTopMenu, akActor)
+		EndIf
+	ElseIf aiMenuName == ssm_menu_SetAnim
+		ssmSlave slave = FindSlot(akActor)
+		String[] validAnimationsComaSeparated = zbf.GetPoseAnimList(aiPoseIndex = slave.iPose, aiBindType = zbf.GetBindTypeFromWornKeywords(akActor))
+		Debug.Trace("validAnimationsComaSeparated length is: " + validAnimationsComaSeparated.Length)
+		String[] validAnimations = zbfUtil.ArgString(validAnimationsComaSeparated[0], asDelimiter = ",", bAllowEmpty = False) ;[0] means "non-struggling"
+		Int validAnimationsLength = validAnimations.Length
+		Debug.Trace("validAnimations length is: " + validAnimations.Length)
+		Int i
+		While i < validAnimationsLength
+			Debug.Trace("Item at position " + i + " of validAnimations is " + validAnimations[i])
+			StringListAdd(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes", value = validAnimations[i], allowDuplicate = False)	;create a StorageUtil array on the fly that gets rid of duplicates
+			i += 1
+		EndWhile
+		Int totalEntries = StringListCount(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes")
+		UIExtensions.SetMenuPropertyInt("UIListMenu", "totalEntries", totalEntries)
+		i = 0
+		While i < totalEntries
+				UIExtensions.SetMenuPropertyIndexString("UIListMenu", "entryName", i, StringListGet(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes", index = i))
+				UIExtensions.SetMenuPropertyIndexInt("UIListMenu", "entryId", i, i)
+				i += 1
+		EndWhile
+		UIExtensions.OpenMenu(menuName = "UIListMenu")
+		iMenuSelected = UIExtensions.GetMenuResultInt(menuName = "UIListMenu")
+		
+		If iMenuSelected != -1	;-1 is returned if menu is exited without selecting anything
+			slave.StopIdleAnim()	;stop automatic animation selection
+			Utility.WaitMenuMode(1.0)	;required otherwise StopIdleAnim() makes the actor stand
+			slave.PinActor()
+			slave.SheatheWeapon()
+			slave.SetAnim(StringListGet(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes", index = iMenuSelected))
+			StringListClear(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes")
 		EndIf
 	EndIf
 EndFunction
 
-Function ExecuteWheelCommand(Int aiCommand, Actor akActor = None)
+
+Function ExecuteSSMCommand(Int aiCommand, Actor akActor = None)
 	If aiCommand < 1
 		Return
 	ElseIf !akActor
-		Debug.Trace("[SSM] ERROR: ExecuteWheelCommand() has been passed a non-object for argument akActor")
+		Debug.Trace("[SSM] ERROR: ExecuteSSMCommand() has been passed a non-object for argument akActor")
 		Return
 	EndIf
 	
 	ssmSlave slave = FindSlot(akActor)
 
 	If aiCommand == ssm_command_OpenTopMenu
-		OpenWheelMenu(ssm_menu_Top, akActor)
+		OpenSSMMenu(ssm_menu_Top, akActor)
 	ElseIf aiCommand == ssm_command_OpenBondageScreen
 		slave.bForceEquip = True	;bForceEquip is a property in the ssmSlave sub-class of akActor
 		akActor.OpenInventory(abForceOpen = True)
@@ -262,12 +306,18 @@ Function ExecuteWheelCommand(Int aiCommand, Actor akActor = None)
 		slave.bForceEquip = False
 		akActor.OpenInventory(abForceOpen = True)
 	ElseIf aiCommand == ssm_command_OpenPoseMenu
-		OpenWheelMenu(ssm_menu_Pose, akActor)
+		OpenSSMMenu(ssm_menu_Pose, akActor)
 	ElseIf aiCommand == ssm_command_SetPoseStanding
+		slave.UnpinActor()
+		slave.SheatheWeapon()
 		slave.SetPose(zbf.iPoseStanding)
 	ElseIf aiCommand == ssm_command_SetPoseKneeling
+		slave.PinActor()
+		slave.SheatheWeapon()
 		slave.SetPose(zbf.iPoseKneeling)
 	ElseIf aiCommand == ssm_command_SetPoseLying
+		slave.PinActor()
+		slave.SheatheWeapon()
 		slave.SetPose(zbf.iPoseLying)
 	ElseIf aiCommand == ssm_command_ToggleStruggling
 		If akActor.IsInFaction(ssmStrugglingFaction)
@@ -278,7 +328,7 @@ Function ExecuteWheelCommand(Int aiCommand, Actor akActor = None)
 			akActor.AddToFaction(ssmStrugglingFaction)
 		EndIf
 	ElseIf aiCommand == ssm_command_OpenOrdersMenu
-		OpenWheelMenu(ssm_menu_Orders, akActor)
+		OpenSSMMenu(ssm_menu_Orders, akActor)
 	ElseIf aiCommand == ssm_command_ToggleIdleMarkersUse
 		If akActor.IsInFaction(ssmIdleMarkersNotAllowedFaction)
 			akActor.RemoveFromFaction(ssmIdleMarkersNotAllowedFaction)
@@ -295,11 +345,12 @@ Function ExecuteWheelCommand(Int aiCommand, Actor akActor = None)
 			EndIf
 		EndIf
 	ElseIf aiCommand == ssm_command_SetDoingFavor
-		slave.SetStillAnim("")		;clear the still animation before the slave starts moving
 		slave.SetPose(zbf.iPoseStanding)	;make her stand before she starts moving
+		slave.UnpinActor()
 		akActor.SetDoingFavor(abDoingFavor = True)
-	ElseIf aiCommand == ssm_command_SetStillAnim
-		slave.SetStillAnim("ZapWriPose06")
-		slave.ApplyAnimEffects()
+	ElseIf aiCommand == ssm_command_SetAnim
+		OpenSSMMenu(ssm_menu_SetAnim, akActor)
+		;/ slave.SetAnim("ZapWriPose06")
+		slave.ApplyAnimEffects() /;
 	EndIf
 EndFunction
