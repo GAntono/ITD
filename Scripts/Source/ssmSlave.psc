@@ -2,6 +2,7 @@ Scriptname ssmSlave extends zbfSlot
 
 ReferenceAlias Property PlayerRef Auto
 Bool Property bForceEquip Auto Hidden
+Bool Property bHasAnimSet Auto Hidden
 
 Event OnItemAdded(Form akBaseItem, Int aiItemCount, ObjectReference akItemReference, ObjectReference akSourceContainer)
 	If !bForceEquip

@@ -254,13 +254,10 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 	ElseIf aiMenuName == ssm_menu_SetAnim
 		ssmSlave slave = FindSlot(akActor)
 		String[] validAnimationsComaSeparated = zbf.GetPoseAnimList(aiPoseIndex = slave.iPose, aiBindType = zbf.GetBindTypeFromWornKeywords(akActor))
-		Debug.Trace("validAnimationsComaSeparated length is: " + validAnimationsComaSeparated.Length)
 		String[] validAnimations = zbfUtil.ArgString(validAnimationsComaSeparated[0], asDelimiter = ",", bAllowEmpty = False) ;[0] means "non-struggling"
 		Int validAnimationsLength = validAnimations.Length
-		Debug.Trace("validAnimations length is: " + validAnimations.Length)
 		Int i
 		While i < validAnimationsLength
-			Debug.Trace("Item at position " + i + " of validAnimations is " + validAnimations[i])
 			StringListAdd(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes", value = validAnimations[i], allowDuplicate = False)	;create a StorageUtil array on the fly that gets rid of duplicates
 			i += 1
 		EndWhile
@@ -276,11 +273,7 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 		iMenuSelected = UIExtensions.GetMenuResultInt(menuName = "UIListMenu")
 		
 		If iMenuSelected != -1	;-1 is returned if menu is exited without selecting anything
-			slave.StopIdleAnim()	;stop automatic animation selection
-			Utility.WaitMenuMode(1.0)	;required otherwise StopIdleAnim() makes the actor stand
-			slave.PinActor()
-			slave.SheatheWeapon()
-			slave.SetAnim(StringListGet(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes", index = iMenuSelected))
+			SetAnimExtended(slave, StringListGet(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes", index = iMenuSelected))
 			StringListClear(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes")
 		EndIf
 	EndIf
@@ -308,17 +301,11 @@ Function ExecuteSSMCommand(Int aiCommand, Actor akActor = None)
 	ElseIf aiCommand == ssm_command_OpenPoseMenu
 		OpenSSMMenu(ssm_menu_Pose, akActor)
 	ElseIf aiCommand == ssm_command_SetPoseStanding
-		slave.UnpinActor()
-		slave.SheatheWeapon()
-		slave.SetPose(zbf.iPoseStanding)
+		SetPoseExtended(slave, zbf.iPoseStanding)
 	ElseIf aiCommand == ssm_command_SetPoseKneeling
-		slave.PinActor()
-		slave.SheatheWeapon()
-		slave.SetPose(zbf.iPoseKneeling)
+		SetPoseExtended(slave, zbf.iPoseKneeling)
 	ElseIf aiCommand == ssm_command_SetPoseLying
-		slave.PinActor()
-		slave.SheatheWeapon()
-		slave.SetPose(zbf.iPoseLying)
+		SetPoseExtended(slave, zbf.iPoseLying)
 	ElseIf aiCommand == ssm_command_ToggleStruggling
 		If akActor.IsInFaction(ssmStrugglingFaction)
 			slave.SetStruggle(abStruggle = False)
@@ -345,12 +332,45 @@ Function ExecuteSSMCommand(Int aiCommand, Actor akActor = None)
 			EndIf
 		EndIf
 	ElseIf aiCommand == ssm_command_SetDoingFavor
-		slave.SetPose(zbf.iPoseStanding)	;make her stand before she starts moving
-		slave.UnpinActor()
+		SetPoseExtended(slave, zbf.iPoseStanding)	;make her stand before she starts moving
 		akActor.SetDoingFavor(abDoingFavor = True)
 	ElseIf aiCommand == ssm_command_SetAnim
 		OpenSSMMenu(ssm_menu_SetAnim, akActor)
 		;/ slave.SetAnim("ZapWriPose06")
 		slave.ApplyAnimEffects() /;
 	EndIf
+EndFunction
+
+Function SetPoseExtended(ssmSlave akSlave, Int aiPoseIndex)
+;automates standard tasks when calling SetPose()
+	If !akSlave
+		Debug.Trace("[SSM] ERROR: SetPoseExtended() has been passed a non-object for argument akSlave")
+		Return
+	EndIf
+	
+	akSlave.bHasAnimSet = True
+	If aiPoseIndex == zbf.iPoseStanding
+		akSlave.UnpinActor()
+	Else
+		akSlave.PinActor()
+	EndIf
+	akSlave.SheatheWeapon()
+	akSlave.SetPose(aiPoseIndex)
+EndFunction
+
+Function SetAnimExtended(ssmSlave akSlave, String asAnim)
+;automates standard tasks when calling SetAnim()
+	If !akSlave
+		Debug.Trace("[SSM] ERROR: SetAnimExtended() has been passed a non-object for argument akSlave")
+		Return
+	EndIf
+	
+	akSlave.PinActor()
+	If akSlave.bHasAnimSet	;breaks animation continuity (slave stands up) but cannot be avoided if bHasAnimSet otherwise the slave will be automatically switching animations
+		akSlave.SetAnimSet("")	;stop automatic animation selection - same as StopIdleAnim()
+		Utility.WaitMenuMode(1.0)	;required otherwise SetAnimSet("") makes the actor stay in standing position
+		akSlave.bHasAnimSet = False
+	EndIf
+	akSlave.SheatheWeapon()
+	akSlave.SetAnim(asAnim)
 EndFunction
