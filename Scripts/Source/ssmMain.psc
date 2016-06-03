@@ -2,13 +2,14 @@ Scriptname ssmMain extends Quest
 
 ;TODO: Have all properties & variables initialize via a function, to allow them to take new value after version update.
 ;TODO: Special case Hogtie: slave cannot do most actions, cannot move. Can only be placed in hogtie by binding her that way.
-;TODO: Add zbfSlot.SheatheWeapon() before forcing any animations.
 ;TODO: Ask for iBindType to be turned into a property or returned by a function.
 ;TODO: Ask for a version of SetBinding() that equips but doesn't add.
 ;TODO: In fact, ask for all zbfSlot variables to be converted into properties.
 
 zbfBondageShell Property zbf Auto				;ZAZ Animation Pack zbfBondageShell API.
 zbfSlaveControl Property zbf_SlaveControl Auto	;ZAZ Animation Pack zbfSlaveControl API.
+
+Import StorageUtil
 
 ReferenceAlias Property PlayerRef Auto
 ssmSlave[] Property Slots Auto
@@ -193,6 +194,7 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 			optionLabelText_ToggleStruggling = "Stop struggling"
 			optionText_ToggleStruggling = "Stop struggling"
 		EndIf
+		;TODO: if no poses available for iPose = iPoseStanding with any combination of aiBindType, then disable that option when standing
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Standing")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Stand up")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
@@ -249,25 +251,38 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 		ElseIf iMenuSelected == 3
 			ExecuteSSMCommand(ssm_command_OpenTopMenu, akActor)
 		EndIf
-	ElseIf aiMenuName == ssm_menu_SetAnim	;TODO: this menu will show only available animations for akActor
-		String[] validAnimationsComaSeparated = zbf.GetPoseAnimList(aiPoseIndex = FindSlot(akActor).iPose, aiBindType = zbf.GetBindTypeFromWornKeywords(akActor))
+	ElseIf aiMenuName == ssm_menu_SetAnim
+		ssmSlave slave = FindSlot(akActor)
+		String[] validAnimationsComaSeparated = zbf.GetPoseAnimList(aiPoseIndex = slave.iPose, aiBindType = zbf.GetBindTypeFromWornKeywords(akActor))
 		Debug.Trace("validAnimationsComaSeparated length is: " + validAnimationsComaSeparated.Length)
 		String[] validAnimations = zbfUtil.ArgString(validAnimationsComaSeparated[0], asDelimiter = ",", bAllowEmpty = False) ;[0] means "non-struggling"
-		Int totalEntries = validAnimations.Length
+		Int validAnimationsLength = validAnimations.Length
 		Debug.Trace("validAnimations length is: " + validAnimations.Length)
-		UIExtensions.SetMenuPropertyInt("UIListMenu", "totalEntries", totalEntries)
 		Int i
-		While i < totalEntries
-			UIExtensions.SetMenuPropertyIndexString("UIListMenu", "entryName", i, validAnimations[i])
-			UIExtensions.SetMenuPropertyIndexInt("UIListMenu", "entryId", i, i)
+		While i < validAnimationsLength
+			Debug.Trace("Item at position " + i + " of validAnimations is " + validAnimations[i])
+			StringListAdd(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes", value = validAnimations[i], allowDuplicate = False)	;create a StorageUtil array on the fly that gets rid of duplicates
 			i += 1
 		EndWhile
-		iMenuSelected = UIExtensions.OpenMenu(menuName = "UIListMenu")
+		Int totalEntries = StringListCount(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes")
+		UIExtensions.SetMenuPropertyInt("UIListMenu", "totalEntries", totalEntries)
+		i = 0
+		While i < totalEntries
+				UIExtensions.SetMenuPropertyIndexString("UIListMenu", "entryName", i, StringListGet(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes", index = i))
+				UIExtensions.SetMenuPropertyIndexInt("UIListMenu", "entryId", i, i)
+				i += 1
+		EndWhile
+		UIExtensions.OpenMenu(menuName = "UIListMenu")
+		iMenuSelected = UIExtensions.GetMenuResultInt(menuName = "UIListMenu")
 		
-		ssmSlave slave = FindSlot(akActor)
-		slave.PinActor()
-		slave.SheatheWeapon()
-		slave.SetAnim(validAnimations[iMenuSelected])
+		If iMenuSelected != -1	;-1 is returned if menu is exited without selecting anything
+			slave.StopIdleAnim()	;stop automatic animation selection
+			Utility.WaitMenuMode(1.0)	;required otherwise StopIdleAnim() makes the actor stand
+			slave.PinActor()
+			slave.SheatheWeapon()
+			slave.SetAnim(StringListGet(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes", index = iMenuSelected))
+			StringListClear(ObjKey = akActor, KeyName = "ssm_SU_validAnimationsNoDupes")
+		EndIf
 	EndIf
 EndFunction
 
@@ -330,10 +345,7 @@ Function ExecuteSSMCommand(Int aiCommand, Actor akActor = None)
 			EndIf
 		EndIf
 	ElseIf aiCommand == ssm_command_SetDoingFavor
-		If slave.bIsAnimating
-			slave.SetAnim("")		;clear the still animation before the slave starts moving
-		EndIf
-		;slave.SetPose(zbf.iPoseStanding)	;make her stand before she starts moving - TODO: check if redundant
+		slave.SetPose(zbf.iPoseStanding)	;make her stand before she starts moving
 		slave.UnpinActor()
 		akActor.SetDoingFavor(abDoingFavor = True)
 	ElseIf aiCommand == ssm_command_SetAnim
