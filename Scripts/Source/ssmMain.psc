@@ -36,7 +36,8 @@ Int Property ssm_command_ToggleStruggling			Auto Hidden
 Int Property ssm_command_OpenOrdersMenu				Auto Hidden
 Int Property ssm_command_ToggleIdleMarkersUse 		Auto Hidden
 Int Property ssm_command_SetDoingFavor				Auto Hidden
-Int Property ssm_command_SetAnim				Auto Hidden
+Int Property ssm_command_SetAnim					Auto Hidden
+Int Property ssm_command_ToggleSlaveFollow			Auto Hidden
 
 ;makes sure that OnInit() will only fire once.
 Event OnInit()
@@ -73,7 +74,8 @@ Function InitValues()
 	ssm_command_OpenOrdersMenu				= 10
 	ssm_command_ToggleIdleMarkersUse		= 11
 	ssm_command_SetDoingFavor				= 12
-	ssm_command_SetAnim				= 13
+	ssm_command_SetAnim						= 13
+	ssm_command_ToggleSlaveFollow			= 14
 EndFunction
 
 ssmSlave Function FindSlot(Actor akActor)
@@ -154,6 +156,12 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 		If zbf.GetBindTypeFromWornKeywords(akActor) == zbf.iBindUnbound	;if the actor is not bound, she doesn't pose
 			bPoseMenuEnabled = False
 		EndIf
+		String optionLabelText_ToggleSlaveFollow = "Stay"
+		String optionText_ToggleSlaveFollow = "Stay here, slave"
+		If akActor.GetActorValue("WaitingForPlayer")
+			optionLabelText_ToggleSlaveFollow = "Follow"
+			optionText_ToggleSlaveFollow = "Follow me, slave"
+		EndIf
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 0, "Bondage & Attire")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 0, "Bind & Dress")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 0, True)
@@ -169,8 +177,8 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 4, "Command")
 		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 4, "Issue a command")
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 4, True)
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 5, "Follow/Wait")
-		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 5, "Follow/Wait")
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionLabelText", 5, optionLabelText_ToggleSlaveFollow)
+		UIExtensions.SetMenuPropertyIndexString("UIWheelMenu", "optionText", 5, optionText_ToggleSlaveFollow)
 		UIExtensions.SetMenuPropertyIndexBool("UIWheelMenu", "optionEnabled", 5, True)
 		
 		iMenuSelected = UIExtensions.OpenMenu(menuName = "UIWheelMenu", akForm = akActor)
@@ -185,6 +193,8 @@ Function OpenSSMMenu(Int aiMenuName, Actor akActor = None)
 			ExecuteSSMCommand(ssm_command_OpenOrdersMenu, akActor)
 		ElseIf iMenuSelected == 4
 			ExecuteSSMCommand(ssm_command_SetDoingFavor, akActor)
+		ElseIf iMenuSelected == 5
+			ExecuteSSMCommand(ssm_command_ToggleSlaveFollow, akActor)
 		EndIf
 
 	ElseIf aiMenuName == ssm_menu_Pose
@@ -336,13 +346,13 @@ Function ExecuteSSMCommand(Int aiCommand, Actor akActor = None)
 		akActor.SetDoingFavor(abDoingFavor = True)
 	ElseIf aiCommand == ssm_command_SetAnim
 		OpenSSMMenu(ssm_menu_SetAnim, akActor)
-		;/ slave.SetAnim("ZapWriPose06")
-		slave.ApplyAnimEffects() /;
+	ElseIf aiCommand == ssm_command_ToggleSlaveFollow
+		ToggleSlaveFollow(akSlave = akActor)
 	EndIf
 EndFunction
 
 Function SetPoseExtended(ssmSlave akSlave, Int aiPoseIndex)
-;automates standard tasks when calling SetPose()
+	;automates standard tasks when calling SetPose()
 	If !akSlave
 		Debug.Trace("[SSM] ERROR: SetPoseExtended() has been passed a non-object for argument akSlave")
 		Return
@@ -373,4 +383,26 @@ Function SetAnimExtended(ssmSlave akSlave, String asAnim)
 	EndIf
 	akSlave.SheatheWeapon()
 	akSlave.SetAnim(asAnim)
+EndFunction
+
+Function ToggleSlaveFollow(Actor akSlave, Int abFollow = -1)
+	;toggles between follow/wait. Can force-set Follow if abFollow is set to 1, Wait if abFollow is set to 0.
+	If !akSlave
+		Debug.Trace("[SSM] ERROR: SetSlaveFollow() has been passed a non-object for argument akSlave")
+		Return
+	EndIf
+	
+	If abFollow == 1
+		akSlave.SetActorValue("WaitingForPlayer", 0)
+		Return
+	ElseIf abFollow == 0
+		akSlave.SetActorValue("WaitingForPlayer", 1)
+		Return
+	EndIf
+	
+	If akSlave.GetActorValue("WaitingForPlayer")
+		akSlave.SetActorValue("WaitingForPlayer", 0)
+	Else
+		akSlave.SetActorValue("WaitingForPlayer", 1)
+	EndIf
 EndFunction
