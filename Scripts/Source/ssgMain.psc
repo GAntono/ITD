@@ -78,6 +78,10 @@ Function InitValues()
 	ssg_command_ToggleSlaveFollow			= 14
 EndFunction
 
+ssgMain Function GetAPI() Global
+	Return Game.GetFormFromFile(0x0400E746, "SkyrimSlaversGuild.esp") as ssgMain
+EndFunction
+
 ssgSlave Function FindSlot(Actor akActor)
 	If !akActor
 		Return None
@@ -318,11 +322,9 @@ Function ExecuteSSGCommand(Int aiCommand, Actor akActor = None)
 		SetPoseExtended(slave, zbf.iPoseLying)
 	ElseIf aiCommand == ssg_command_ToggleStruggling
 		If akActor.IsInFaction(ssgStrugglingFaction)
-			slave.SetStruggle(abStruggle = False)
-			akActor.RemoveFromFaction(ssgStrugglingFaction)
+			SetStruggleExtended(slave, abStruggle = False)
 		Else
-			slave.SetStruggle(abStruggle = True)
-			akActor.AddToFaction(ssgStrugglingFaction)
+			SetStruggleExtended(slave, abStruggle = True)
 		EndIf
 	ElseIf aiCommand == ssg_command_OpenOrdersMenu
 		OpenSSGMenu(ssg_menu_Orders, akActor)
@@ -352,6 +354,11 @@ Function ExecuteSSGCommand(Int aiCommand, Actor akActor = None)
 EndFunction
 
 Function SetPoseExtended(ssgSlave akSlave, Int aiPoseIndex)
+	;iPoseStanding = 0
+	;iPoseKneeling = 1
+	;iPoseHogtie = 2
+	;iPoseLying = 3
+	;iPoseFurnitureBase = 200
 	;automates standard tasks when calling SetPose()
 	If !akSlave
 		Debug.Trace("[SSG] ERROR: SetPoseExtended() has been passed a non-object for argument akSlave")
@@ -369,7 +376,7 @@ Function SetPoseExtended(ssgSlave akSlave, Int aiPoseIndex)
 EndFunction
 
 Function SetAnimExtended(ssgSlave akSlave, String asAnim)
-;automates standard tasks when calling SetAnim()
+	;automates standard tasks when calling SetAnim()
 	If !akSlave
 		Debug.Trace("[SSG] ERROR: SetAnimExtended() has been passed a non-object for argument akSlave")
 		Return
@@ -383,6 +390,23 @@ Function SetAnimExtended(ssgSlave akSlave, String asAnim)
 	EndIf
 	akSlave.SheatheWeapon()
 	akSlave.SetAnim(asAnim)
+EndFunction
+
+Function SetStruggleExtended(ssgSlave akSlave, Bool abStruggle)
+	;automates standard tasks when calling SetStruggle()
+	If !akSlave
+		Debug.Trace("[SSG] ERROR: SetStruggleExtended() has been passed a non-object for argument akSlave")
+		Return
+	EndIf
+	
+	Actor actorRef = akSlave.GetActorReference()
+	If abStruggle
+		akSlave.SetStruggle(abStruggle = True)
+		actorRef.AddToFaction(ssgStrugglingFaction)
+	Else
+		akSlave.SetStruggle(abStruggle = False)
+		actorRef.RemoveFromFaction(ssgStrugglingFaction)
+	EndIf
 EndFunction
 
 Function ToggleSlaveFollow(Actor akSlave, Int abFollow = -1)
