@@ -42,11 +42,11 @@ ssgQ01 kmyQuest = __temp as ssgQ01
 	
 	slaverRef.MakePlayerFriend()
 	slaverRef.StopCombat()
+	slaverRef.SetNoBleedoutRecovery(False)
 
 	zbfSexLab zbfSL = zbfSexLab.GetApi()
 	Actor[] actors = zbfUtil.ActorList(lucyRef, playerRef)
-	zbfSexLabBaseEntry[] list = zbfSL.GetEntriesByTags(actors, "Missionary, Aggressive", aiMinActorCount = 2)
-	Debug.Trace("Found " + list.Length + " animations")
+	zbfSexLabBaseEntry[] list = zbfSL.GetEntriesByTags(actors, "Forced, Aggressive", aiMinActorCount = 2)
 	Int success = zbfSL.StartSex(actors, list, Victim = lucyRef)
 ;END CODE
 EndFunction
@@ -60,9 +60,12 @@ ssgQ01 kmyQuest = __temp as ssgQ01
 ;END AUTOCAST
 ;BEGIN CODE
 	SetObjectiveDisplayed(20)
+	Alias_MapMarker.GetReference().AddToMap()
 	
 	Actor slaverRef = Alias_Slaver.GetActorReference()
 	Actor lucyRef = Alias_Lucy.GetActorReference()
+	slaverRef.SetNoBleedoutRecovery(True)
+	slaverRef.AllowBleedoutDialogue(abCanTalk = True)
 	slaverRef.Enable()
 	lucyRef.Enable()
 	ssgMain ssg = ssgMain.GetAPI()
