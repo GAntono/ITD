@@ -1,6 +1,5 @@
-Scriptname ssmSlave extends zbfSlot
+Scriptname ssgSlave extends zbfSlot
 
-ReferenceAlias Property PlayerRef Auto
 Bool Property bForceEquip Auto Hidden
 Bool Property bHasAnimSet Auto Hidden
 
