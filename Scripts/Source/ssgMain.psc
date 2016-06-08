@@ -11,7 +11,7 @@ zbfSlaveControl Property zbf_SlaveControl Auto	;ZAZ Animation Pack zbfSlaveContr
 
 Import StorageUtil
 
-ReferenceAlias Property PlayerRef Auto
+ReferenceAlias Property Player Auto
 ssgSlave[] Property Slots Auto
 Spell Property ssgEnslaveSpell Auto
 Spell Property ssgFreeSlaveSpell Auto
@@ -45,8 +45,8 @@ Event OnInit()
 	If StorageUtil.GetIntValue(Self, "OnInitCounter") == 2
 		InitValues()
 		zbf_SlaveControl.RegisterForEvents()
-		PlayerRef.GetActorReference().AddSpell(ssgEnslaveSpell)
-		PlayerRef.GetActorReference().AddSpell(ssgFreeSlaveSpell)
+		Player.GetActorReference().AddSpell(ssgEnslaveSpell)
+		Player.GetActorReference().AddSpell(ssgFreeSlaveSpell)
 		RegisterForKey(ssgMenuKey)
 
 		StorageUtil.UnsetIntValue(Self, "OnInitCounter")
@@ -79,7 +79,7 @@ Function InitValues()
 EndFunction
 
 ssgMain Function GetAPI() Global
-	Return Game.GetFormFromFile(0x0400E746, "SkyrimSlaversGuild.esp") as ssgMain
+	Return Game.GetFormFromFile(0x04003F4E, "SkyrimSlaversGuild.esp") as ssgMain
 EndFunction
 
 ssgSlave Function FindSlot(Actor akActor)

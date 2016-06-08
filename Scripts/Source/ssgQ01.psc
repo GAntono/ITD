@@ -1,7 +1,7 @@
 Scriptname ssgQ01 extends Quest  
 
 ReferenceAlias[] Property QuestAliases Auto
-ReferenceAlias Property PlayerRef Auto
+ReferenceAlias Property Player Auto
 
 ;/ 
 Quest stages:
