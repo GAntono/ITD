@@ -34,20 +34,23 @@ Quest __temp = self as Quest
 ssgQ01 kmyQuest = __temp as ssgQ01
 ;END AUTOCAST
 ;BEGIN CODE
-	SetObjectiveCompleted(20)
+SetObjectiveCompleted(20)
 
-	Actor playerRef = Alias_Player.GetActorReference()
-	Actor slaverRef = Alias_Slaver.GetActorReference()
-	Actor lucyRef = Alias_Lucy.GetActorReference()
-	
-	slaverRef.MakePlayerFriend()
-	slaverRef.StopCombat()
-	slaverRef.SetNoBleedoutRecovery(False)
+Actor playerRef = Alias_Player.GetActorReference()
+Actor slaverRef = Alias_Slaver.GetActorReference()
+Actor lucyRef = Alias_Lucy.GetActorReference()
 
-	zbfSexLab zbfSL = zbfSexLab.GetApi()
-	Actor[] actors = zbfUtil.ActorList(lucyRef, playerRef)
-	zbfSexLabBaseEntry[] list = zbfSL.GetEntriesByTags(actors, "Forced, Aggressive", aiMinActorCount = 2)
-	Int success = zbfSL.StartSex(actors, list, Victim = lucyRef)
+slaverRef.MakePlayerFriend()
+slaverRef.StopCombat()
+slaverRef.SetNoBleedoutRecovery(False)
+
+SexLabFramework SexLab = SexLabUtil.GetAPI()
+zbfSexLab zbfSL = zbfSexLab.GetAPI()
+Actor[] actors = zbfUtil.ActorList(lucyRef, playerRef)
+zbfSexLabBaseEntry[] list = zbfSL.GetEntriesByTags(actors, asRequired = "Forced, Aggressive", aiMinActorCount = 2)
+Int threadID = zbfSL.StartSexEx(actors, list, zbfUtil.ArgString("Forced, NoUndress, NoStart"))
+sslThreadController thread = SexLab.GetController(threadID)
+thread.StartThread()
 ;END CODE
 EndFunction
 ;END FRAGMENT
@@ -59,21 +62,21 @@ Quest __temp = self as Quest
 ssgQ01 kmyQuest = __temp as ssgQ01
 ;END AUTOCAST
 ;BEGIN CODE
-	SetObjectiveDisplayed(20)
-	Alias_MapMarker.GetReference().AddToMap()
-	
-	Actor slaverRef = Alias_Slaver.GetActorReference()
-	Actor lucyRef = Alias_Lucy.GetActorReference()
-	slaverRef.SetNoBleedoutRecovery(True)
-	slaverRef.AllowBleedoutDialogue(abCanTalk = True)
-	slaverRef.Enable()
-	lucyRef.Enable()
-	ssgMain ssg = ssgMain.GetAPI()
-	ssgSlave slaveLucy = ssg.SlotActor(LucyRef)
-	slaveLucy.SetBinding(zbfWristRope01)
-	slaveLucy.SetBinding(zbfGagCloth)
-	ssg.SetPoseExtended(slaveLucy, aiPoseIndex = 3)	;lying down
-	ssg.SetStruggleExtended(slaveLucy, abStruggle = True)
+SetObjectiveDisplayed(20)
+Alias_MapMarker.GetReference().AddToMap()
+
+Actor slaverRef = Alias_Slaver.GetActorReference()
+Actor lucyRef = Alias_Lucy.GetActorReference()
+slaverRef.SetNoBleedoutRecovery(True)
+slaverRef.AllowBleedoutDialogue(abCanTalk = True)
+slaverRef.Enable()
+lucyRef.Enable()
+ssgMain ssg = ssgMain.GetAPI()
+ssgSlave slaveLucy = ssg.SlotActor(LucyRef)
+slaveLucy.SetBinding(zbfWristRope01)
+slaveLucy.SetBinding(zbfGagCloth)
+ssg.SetPoseExtended(slaveLucy, aiPoseIndex = 3)	;lying down
+ssg.SetStruggleExtended(slaveLucy, abStruggle = True)
 ;END CODE
 EndFunction
 ;END FRAGMENT
